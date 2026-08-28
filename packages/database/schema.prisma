@@ -1,0 +1,100 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum AccountType {
+  BANK
+  EWALLET
+  CASH
+  CREDIT_CARD
+  INVESTMENT
+  TRADING
+}
+
+enum SourceType {
+  MANUAL
+  STATEMENT_IMPORT
+  MT5_SYNC
+  BOT_CAPTURE
+  RECONCILIATION
+}
+
+model Workspace {
+  id           String      @id @default(uuid())
+  name         String
+  baseCurrency String      @default("IDR")
+  createdAt    DateTime    @default(now())
+  accounts     Account[]
+  journals     LedgerJournal[]
+  trades       Trade[]
+
+  @@map("workspaces")
+}
+
+model Account {
+  id          String      @id @default(uuid())
+  workspaceId String
+  workspace   Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  code        String
+  name        String
+  type        AccountType
+  currency    String      @default("IDR")
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  entries     LedgerEntry[]
+  trades      Trade[]
+
+  @@unique([workspaceId, code])
+  @@map("accounts")
+}
+
+model LedgerJournal {
+  id          String      @id @default(uuid())
+  workspaceId String
+  workspace   Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  description String
+  source      SourceType  @default(MANUAL)
+  postedAt    DateTime    @default(now())
+  entries     LedgerEntry[]
+
+  @@map("ledger_journals")
+}
+
+model LedgerEntry {
+  id           String        @id @default(uuid())
+  journalId    String
+  journal      LedgerJournal @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  accountId    String
+  account      Account       @relation(fields: [accountId], references: [id])
+  amount       Decimal       @db.Decimal(20, 4)
+  currency     String
+  exchangeRate Decimal       @default(1.000000) @db.Decimal(12, 6)
+
+  @@map("ledger_entries")
+}
+
+model Trade {
+  id          String    @id @default(uuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  accountId   String
+  account     Account   @relation(fields: [accountId], references: [id])
+  ticketId    String
+  symbol      String
+  type        String    // BUY, SELL
+  lots        Decimal   @db.Decimal(12, 4)
+  openPrice   Decimal   @db.Decimal(20, 8)
+  closePrice  Decimal?  @db.Decimal(20, 8)
+  profit      Decimal   @default(0.0) @db.Decimal(20, 4)
+  openedAt    DateTime
+  closedAt    DateTime?
+  tags        String[]
+
+  @@unique([accountId, ticketId])
+  @@map("trades")
+}
