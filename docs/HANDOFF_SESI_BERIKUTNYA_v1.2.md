@@ -195,3 +195,34 @@ curl -s https://raw.githubusercontent.com/itzranke/SAKU/main/docs/ci/23_CI_PROPO
 - Mitigasi saat menulis step baru: jangan sembunyikan panggilan curl yang statusnya
   penting di dalam substitusi, atau selipkan `echo` penanda fase agar posisi kegagalan
   selalu bisa dihitung.
+
+## 9) Addendum sesi 2026-08-30 (lanjutan) — P1 tuntas, backlog dimulai: connectors API + auth fase 1
+
+> Addendum hanya MENAMBAH; §1–§8 dipertahankan apa adanya. Semua SHA/PR diverifikasi via
+> `api.github.com` sebelum ditulis. main saat addendum ini merge = pasca PR #12.
+
+### 9.1) Yang tuntas sesi ini (semua via PR, CI hijau dulu baru merge)
+
+| Item | PR | Isi |
+|---|---|---|
+| P1 docs-sync | [#8](https://github.com/itzranke/SAKU/pull/8) | `23_CI_PROPOSED.yml` baris jq `.integration.id` (re-apply manual, bukan cherry-pick; SHA lama dfcc00f/ed533a4 memang tidak ada di remote) + addendum §8 |
+| P2a connectors API | [#9](https://github.com/itzranke/SAKU/pull/9) | `GET /api/v1/connectors` read-only: `type/label/status/direction/syncIntervalSec/credentialRef/normalizer` (tanpa materi rahasia); `ConnectorDescriptor` +`normalizer`; tanpa endpoint tulis |
+| P2b desain | [#10](https://github.com/itzranke/SAKU/pull/10) | **ADR-023** (`docs/23_AUTH_SESSION_ADR.md`) — desain dulu sebelum kode, sesuai aturan |
+| P2b kode fase 1 | [#11](https://github.com/itzranke/SAKU/pull/11) | `SessionService` (token 32-byte, hanya hash SHA-256 disimpan, TTL 7 hari, in-memory), `verify-otp` menerbitkan `sakuSession`, `OwnerGuard` global (`X-Saku-Session` → owner; fallback `'user-local'`), `SAKU_AUTH_ENFORCE` default false (401 hanya di route `@OwnerScoped`), `body.ownerId`/`?ownerId=` klien DIABAIKAN |
+
+- Unit test naik 80 → **99/99**; smoke HTTP penuh lulus termasuk instance `SAKU_AUTH_ENFORCE=true`
+  (401/200) dan **0 token mentah di log**.
+- Temuan penting (masuk ADR-023 §5): field kawat bernama `*token*` otomatis dipotong jaring
+  redaksi — mock `accessToken` lama ternyata **tidak pernah** sampai ke klien sejak M2. Karena
+  itu nama field sesi = `sakuSession` (bebas needle); jaring redaksi tidak dilemahkan.
+
+### 9.2) Sisa backlog (urutan bebas, satu PR per fitur)
+
+- **Node20 Actions warning** — diterima; JANGAN sentuh kecuali diminta (tetap).
+- **Live test MetaApi (P3, user-driven)** — menunggu user: set `METAAPI_TOKEN` di deployment
+  sendiri + investor password via Settings → Integrations (jangan pernah lewat chat). Kontrak
+  failure ramah sudah dijaga kode (`:id/test` → `ok:false`, sarankan import statement).
+- (Opsional fase berikutnya) cookie `HttpOnly` via proxy Next untuk `sakuSession`; tabel
+  `auth_sessions` persisten (fase 2 ADR-023, via `prisma db execute` + `IF NOT EXISTS`); UI web
+  kirim header `X-Saku-Session` saat sudah ada halaman login sungguhan; menyalakan
+  `SAKU_AUTH_ENFORCE=true` di deployment produksi saat fase multi-pemilik dimulai.
