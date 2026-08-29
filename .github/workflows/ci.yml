@@ -28,8 +28,89 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Typecheck Core (regression guard for conflict markers & types)
+        run: |
+          pnpm --filter @saku/api-core exec tsc --noEmit
+          pnpm --filter @saku/web exec tsc --noEmit
+
       - name: Lint Codebase
         run: pnpm lint
 
       - name: Build Packages & Apps
         run: pnpm build
+
+  db-persistence-smoke:
+    name: 🗄️ Ledger Persistence vs PostgreSQL (smoke)
+    runs-on: ubuntu-latest
+    needs: lint-and-build
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: saku_admin
+          POSTGRES_PASSWORD: saku_secret_password
+          POSTGRES_DB: saku_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U saku_admin -d saku_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://saku_admin:saku_secret_password@localhost:5432/saku_db?schema=public
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9.1.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Push append-only schema & seed journals
+        run: |
+          pnpm --filter @saku/database db:push
+          pnpm --filter @saku/database db:seed
+
+      - name: Build core, run API twice — prove journals survive restart
+        run: |
+          pnpm --filter @saku/database build
+          pnpm --filter @saku/api-core build
+          cd services/api-core
+          node dist/main > /tmp/api1.log 2>&1 &
+          API_PID=$!
+          for i in $(seq 1 25); do curl -sf http://localhost:4000/api/v1/ledger/snapshot >/dev/null && break; sleep 1; done
+          if grep -q "Falling back to in-memory" /tmp/api1.log; then
+            echo "::error::API memakai fallback in-memory — adapter Prisma TIDAK aktif"
+            cat /tmp/api1.log
+            exit 1
+          fi
+          curl -sf http://localhost:4000/api/v1/ledger/snapshot > /tmp/snap0.json
+          MARKER="CI Persistence Probe $(date +%s)"
+          curl -sf -X POST http://localhost:4000/api/v1/ledger/transaction \
+            -H 'Content-Type: application/json' \
+            -d "{\"amount\":700000,\"type\":\"EXPENSE\",\"description\":\"${MARKER}\",\"account\":\"Bank BCA\"}" > /dev/null
+          kill $API_PID
+          sleep 2
+          node dist/main > /tmp/api2.log 2>&1 &
+          API_PID=$!
+          for i in $(seq 1 25); do curl -sf http://localhost:4000/api/v1/ledger/snapshot >/dev/null && break; sleep 1; done
+          if ! curl -sf "http://localhost:4000/api/v1/ledger/journals?limit=100" | grep -q "${MARKER}"; then
+            echo "::error::Marker hilang setelah restart — persistence GAGAL"
+            cat /tmp/api2.log
+            exit 1
+          fi
+          echo "✅ Jurnal '${MARKER}' bertahan lintas restart API (tersimpan permanen di PostgreSQL)."
