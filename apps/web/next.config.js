@@ -1,20 +1,12 @@
 /** @type {import('next').NextConfig} */
 
 // SAKU Core API proxy: the browser ONLY ever talks to relative /api/proxy/* paths.
-// Next.js (server-side) forwards them to the NestJS API, so the preview/deploy
-// environment works without exposing localhost to client code.
-const SAKU_API_INTERNAL_URL = process.env.SAKU_API_INTERNAL_URL || 'http://localhost:4000';
-
+// ADR-024 fase 2: the static rewrite was replaced by a route handler
+// (src/app/api/proxy/[...path]/route.ts) because the proxy now also has to translate the
+// HttpOnly `saku_session` cookie into the `X-Saku-Session` header api-core expects — a
+// rewrite cannot do that. Target host still comes from SAKU_API_INTERNAL_URL, read there.
 const nextConfig = {
   transpilePackages: ['@saku/ledger-core'],
-  async rewrites() {
-    return [
-      {
-        source: '/api/proxy/:path*',
-        destination: `${SAKU_API_INTERNAL_URL}/api/v1/:path*`,
-      },
-    ];
-  },
 };
 
 module.exports = nextConfig;

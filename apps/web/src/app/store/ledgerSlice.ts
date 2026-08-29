@@ -104,6 +104,8 @@ const initialState: LedgerStoreState = {
 async function apiFetch(path: string, init?: RequestInit) {
   const res = await fetch(`/api/proxy${path}`, {
     cache: 'no-store',
+    // ADR-024: kirim cookie sesi HttpOnly; nilainya tetap tak terbaca JavaScript.
+    credentials: 'include',
     ...init,
     headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
   });
