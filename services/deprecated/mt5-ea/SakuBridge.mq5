@@ -7,6 +7,9 @@
 #property link      "https://saku.app"
 #property version   "1.10"
 #property description "SAKU MetaTrader 5 Read-Only Sync Bridge EA (v1.1: account state + closed-deal P&L journals)."
+#property description "DEPRECATED since v1.2 (ADR-022): default path is the server-side MT5 cloud connector"
+#property description "(investor password, read-only) in Settings > Integrations. Kept as an optional zero-password"
+#property description "privacy path; journals from this bridge are recorded with source EA_LEGACY."
 #property description "SAFETY: this EA never places/modifies/closes orders. It only READS account & history data"
 #property description "and POSTs it to the SAKU Core API. Requires URL whitelist entry: Tools > Options > Expert"
 #property description "Advisors > Allow WebRequest for listed URL: http://localhost:4000 (or your API host)."
@@ -155,7 +158,7 @@ void SyncAccountState()
    string result_headers;
    StringToCharArray(jsonPayload, data, 0, StringLen(jsonPayload));
 
-   string headers = "Content-Type: application/json\r\nAuthorization: Bearer " + InpAccountToken + "\r\n";
+   string headers = "Content-Type: application/json\r\nAuthorization: Bearer " + InpAccountToken + "\r\nX-Saku-Client: saku-bridge\r\n";
    int res = WebRequest("POST", InpSakuApiBase + "/trading/sync", headers, 5000, data, result, result_headers);
 
    string body = "";
@@ -180,7 +183,7 @@ void SyncAccountState()
 void PingTradingState()
   {
    char result[];
-   string headers = "Authorization: Bearer " + InpAccountToken + "\r\n";
+   string headers = "Authorization: Bearer " + InpAccountToken + "\r\nX-Saku-Client: saku-bridge\r\n";
    string result_headers;
    int res = WebRequest("GET", InpSakuApiBase + "/trading/state", headers, 5000, result, result_headers);
    if(res == 200)
