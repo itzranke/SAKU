@@ -32,6 +32,13 @@ jobs:
         run: |
           pnpm --filter @saku/api-core exec tsc --noEmit
           pnpm --filter @saku/web exec tsc --noEmit
+          pnpm --filter @saku/database typecheck
+
+      - name: Unit tests (ledger engine + api-core sync pipeline)
+        run: |
+          pnpm --filter @saku/ledger-core build
+          pnpm --filter @saku/ledger-core test
+          pnpm --filter @saku/api-core test
 
       - name: Lint Codebase
         run: pnpm lint
@@ -114,3 +121,159 @@ jobs:
             exit 1
           fi
           echo "✅ Jurnal '${MARKER}' bertahan lintas restart API (tersimpan permanen di PostgreSQL)."
+
+      # ---------------------------------------------------------------------
+      # M1 (ADR-022): dedupe closed-deal adalah TABEL persisten, bukan Set in-memory.
+      # Payload sama 2x -> journalize sekali, skip saat replay; replay pasca-restart tetap skip.
+      # ---------------------------------------------------------------------
+      # Loop SEMUA folder migrasi ber-timestamp (bukan hardcode): migrasi baru cukup
+      # ditambah di prisma/migrations/2*/ dan otomatis ter-apply + ter-verify di sini.
+      # Filter verify.sql memilih folder migrasi ber-probe; semua file migration.sql
+      # repo ini idempoten (IF NOT EXISTS / DO $$ EXCEPTION) jadi aman di-replay
+      # setelah `prisma db push`.
+      - name: 'M1/M2/M3 — apply migration SQL & verify schema on postgres:16'
+        run: |
+          set -euo pipefail
+          cd packages/database
+          for dir in $(ls -d prisma/migrations/2*/ | sort); do
+            if [ -f "$dir/verify.sql" ]; then
+              pnpm exec prisma db execute --file "${dir}migration.sql" --schema schema.prisma
+              pnpm exec prisma db execute --file "${dir}verify.sql" --schema schema.prisma
+              echo "✅ $dir berlaku di postgres:16 (tabel + constraint)"
+            fi
+          done
+
+      - name: 'M1 — /trading/sync idempotensi (duplikat di-skip, bertahan lintas restart)'
+        run: |
+          set -euo pipefail
+          pkill -f 'dist/main' 2>/dev/null || true
+          sleep 1
+          cd services/api-core
+          node dist/main > /tmp/api3.log 2>&1 &
+          API_PID=$!
+          for i in $(seq 1 25); do curl -sf http://localhost:4000/api/v1/ledger/snapshot >/dev/null && break; sleep 1; done
+          if grep -q "Falling back to in-memory" /tmp/api3.log; then
+            echo "::error::API memakai fallback in-memory — dedupe tidak akan terbukti persisten"
+            cat /tmp/api3.log
+            exit 1
+          fi
+          PAYLOAD='{"account":"700001","currency":"USD","account_info":{"login":700001,"server":"HFM-Demo","balance":1000,"equity":1010},"closed_deals":[{"login":700001,"ticket":7000011,"symbol":"CI Dedupe Probe","time_msc":1756000000000,"type":"BUY","entry":"DEAL_ENTRY_OUT","profit":111,"commission":-1,"swap":0,"pnl":110},{"login":700001,"ticket":7000012,"symbol":"CI Dedupe Probe","time_msc":1756000600000,"type":"SELL","entry":"DEAL_ENTRY_OUT","profit":-22,"commission":-1,"swap":0,"pnl":-23}]}'
+          sync_once() { curl -sf -X POST http://localhost:4000/api/v1/trading/sync -H 'Content-Type: application/json' -d "$PAYLOAD"; }
+
+          R1=$(sync_once); echo "sync #1: $R1"
+          if [ "$(echo "$R1" | jq -e .journalized)" != "2" ]; then echo "::error::sync #1 harus journalize 2 deal"; exit 1; fi
+          if [ "$(echo "$R1" | jq -e .skipped)" != "0" ]; then echo "::error::sync #1 tidak boleh skip apa pun"; exit 1; fi
+          if [ "$(echo "$R1" | jq -e .dedupe)" != '"processed_deals"' ]; then echo "::error::sync #1 tidak memakai tabel processed_deals"; exit 1; fi
+
+          R2=$(sync_once); echo "sync #2: $R2"
+          if [ "$(echo "$R2" | jq -e .journalized)" != "0" ]; then echo "::error::sync #2 menduplikasi jurnal (idempotensi GAGAL)"; exit 1; fi
+          if [ "$(echo "$R2" | jq -e .skipped)" != "2" ]; then echo "::error::sync #2 seharusnya skip 2 deal"; exit 1; fi
+          if [ "$(echo "$R2" | jq -e .duplicates_ignored)" != "2" ]; then echo "::error::duplicates_ignored tidak melaporkan 2"; exit 1; fi
+
+          COUNT=$(curl -sf "http://localhost:4000/api/v1/ledger/journals?limit=500" | grep -o 'CI Dedupe Probe' | wc -l)
+          if [ "$COUNT" != "2" ]; then echo "::error::ekspektasi 2 jurnal probe, ditemukan $COUNT"; exit 1; fi
+
+          kill $API_PID; sleep 2
+          node dist/main > /tmp/api4.log 2>&1 &
+          API_PID=$!
+          for i in $(seq 1 25); do curl -sf http://localhost:4000/api/v1/ledger/snapshot >/dev/null && break; sleep 1; done
+          STATE=$(curl -sf http://localhost:4000/api/v1/trading/state)
+          echo "state setelah restart: $STATE"
+          if [ "$(echo "$STATE" | jq -e .processed_tickets)" != "2" ]; then echo "::error::processed_deals hilang setelah restart"; exit 1; fi
+          R3=$(sync_once); echo "sync #3 (pasca-restart): $R3"
+          if [ "$(echo "$R3" | jq -e .journalized)" != "0" ]; then echo "::error::setelah restart deal lama di-jurnalisasi ulang"; exit 1; fi
+          COUNT2=$(curl -sf "http://localhost:4000/api/v1/ledger/journals?limit=500" | grep -o 'CI Dedupe Probe' | wc -l)
+          if [ "$COUNT2" != "2" ]; then echo "::error::jumlah jurnal probe berubah setelah restart ($COUNT2)"; exit 1; fi
+          kill $API_PID 2>/dev/null || true
+          echo "✅ dedupe per-akun:ticket persisten: replay & restart tidak pernah menghasilkan jurnal ganda"
+
+      # ---------------------------------------------------------------------
+      # M2 (ADR-022): kustodi kredensial. Investor password saja (read-only), AES-256-GCM
+      # at-rest, tidak pernah keluar lewat respons atau log. ENCRYPTION_MASTER_KEY di sini
+      # adalah kunci BUANG-BUANG khusus CI (bukan kredensial apa pun).
+      # ---------------------------------------------------------------------
+      - name: 'M2 — kredensial: hanya investor password, ciphertext at-rest, tanpa kebocoran'
+        env:
+          ENCRYPTION_MASTER_KEY: 'saku_ci_throwaway_key_32_bytes!!'
+        run: |
+          set -euo pipefail
+          pkill -f 'dist/main' 2>/dev/null || true
+          sleep 1
+          cd services/api-core
+          node dist/main > /tmp/api5.log 2>&1 &
+          API_PID=$!
+          for i in $(seq 1 25); do curl -sf http://localhost:4000/api/v1/ledger/snapshot >/dev/null && break; sleep 1; done
+          SECRET='Inv3stor-CI-Secret-91827364'
+          RESP=$(curl -sf -X POST http://localhost:4000/api/v1/integrations -H 'Content-Type: application/json' \
+            -d "{\"type\":\"MT5_CLOUD\",\"label\":\"CI MT5\",\"login\":\"700001\",\"server\":\"HFM-Demo\",\"investor_password\":\"${SECRET}\"}")
+          echo "POST /integrations -> $RESP"
+          if echo "$RESP" | grep -q "$SECRET"; then echo "::error::respons POST mengembalikan investor password"; exit 1; fi
+          if echo "$RESP" | grep -q 'credentialCipher'; then echo "::error::credentialCipher bocor di respons POST"; exit 1; fi
+          ID=$(echo "$RESP" | jq -r .id)
+          LIST=$(curl -sf http://localhost:4000/api/v1/integrations)
+          if echo "$LIST" | grep -q "$SECRET"; then echo "::error::GET /integrations membocorkan kredensial"; exit 1; fi
+          if echo "$LIST" | grep -q 'credentialCipher'; then echo "::error::GET /integrations mengembalikan credentialCipher"; exit 1; fi
+          CODE=$(curl -s -o /tmp/master.json -w '%{http_code}' -X POST http://localhost:4000/api/v1/integrations -H 'Content-Type: application/json' \
+            -d '{"type":"MT5_CLOUD","label":"CI Master","login":"1","server":"s","master_password":"tidak-boleh-diterima"}')
+          if [ "$CODE" != "400" ]; then echo "::error::master_password seharusnya ditolak 400 (dapat $CODE)"; cat /tmp/master.json; exit 1; fi
+          grep -qi 'investor password' /tmp/master.json || { echo "::error::pesan error harus menyebut investor password (read-only)"; cat /tmp/master.json; exit 1; }
+          TEST=$(curl -sf -X POST "http://localhost:4000/api/v1/integrations/${ID}/test")
+          echo "test-connection (provider mati) -> $TEST"
+          if echo "$TEST" | grep -q "$SECRET"; then echo "::error::hasil test-connection menyebut kredensial"; exit 1; fi
+          kill $API_PID 2>/dev/null || true
+          if grep -q "$SECRET" /tmp/api5.log; then echo "::error::investor password muncul di log API"; exit 1; fi
+          echo "✅ tidak ada kredensial di respons API maupun di log"
+          cd ../../packages/database
+          node -e '
+            const { PrismaClient } = require("@prisma/client");
+            const p = new PrismaClient();
+            p.integrationAccount.findMany({ where: { label: "CI MT5" } }).then(async (rows) => {
+              const row = rows[0];
+              if (!row) { console.error("::error::baris integrasi CI MT5 tidak ditemukan di DB"); process.exit(1); }
+              if (!row.credentialCipher || row.credentialCipher.includes("Inv3stor-CI-Secret")) {
+                console.error("::error::credentialCipher bukan ciphertext AES-GCM"); process.exit(1);
+              }
+              if (row.credentialCipher.split(":").length < 3) {
+                console.error("::error::format iv:tag:cipher tidak ditemukan"); process.exit(1);
+              }
+              console.log("✅ at-rest:", row.credentialCipher.slice(0, 24) + "... (bukan plaintext)");
+              await p.$disconnect();
+            }).catch((e) => { console.error(e.message); process.exit(1); });
+          '
+
+      # ---------------------------------------------------------------------
+      # M3 (ADR-022): provider abstraction. Flag off => no-op (CI tidak pernah menyentuh
+      # vendor); MT5_PROVIDER=mock => snapshot cache + jurnal lewat pipeline yang sama.
+      # ---------------------------------------------------------------------
+      - name: 'M3 — Mt5Provider: flag off = no-op, mock = snapshot cache + jurnal'
+        env:
+          ENCRYPTION_MASTER_KEY: 'saku_ci_throwaway_key_32_bytes!!'
+        run: |
+          set -euo pipefail
+          pkill -f 'dist/main' 2>/dev/null || true
+          sleep 1
+          cd services/api-core
+          # (1) flag OFF: scheduler no-op, tidak ada outbound call, account-state kosong
+          MT5_CLOUD_ENABLED=false node dist/main > /tmp/api6.log 2>&1 &
+          API_PID=$!
+          for i in $(seq 1 25); do curl -sf http://localhost:4000/api/v1/ledger/snapshot >/dev/null && break; sleep 1; done
+          STATE=$(curl -sf http://localhost:4000/api/v1/trading/account-state)
+          echo "account-state (flag off) -> $STATE"
+          if [ "$(echo "$STATE" | jq -e '.provider')" != '"null"' ]; then echo "::error::provider harus null saat MT5_CLOUD_ENABLED=false"; exit 1; fi
+          if grep -qiE 'metaapi\.cloud|api\.meta' /tmp/api6.log; then echo "::error::ada call ke vendor saat flag off"; exit 1; fi
+          kill $API_PID 2>/dev/null || true
+
+          # (2) provider MOCK: sinkron manual -> snapshot cache terisi + jurnal MT5_SYNC + dedupe
+          MT5_CLOUD_ENABLED=true MT5_PROVIDER=mock MT5_DEALS_INTERVAL_MIN=0 MT5_SNAPSHOT_INTERVAL_SEC=0 \
+            node dist/main > /tmp/api7.log 2>&1 &
+          API_PID=$!
+          for i in $(seq 1 25); do curl -sf http://localhost:4000/api/v1/ledger/snapshot >/dev/null && break; sleep 1; done
+          SYNC=$(curl -sf -X POST http://localhost:4000/api/v1/trading/sync/now)
+          echo "sync/now (mock) -> $SYNC"
+          if [ "$(echo "$SYNC" | jq -e '.journalized')" != "3" ]; then echo "::error::mock provider harus men-journalize 3 deal"; exit 1; fi
+          STATE2=$(curl -sf http://localhost:4000/api/v1/trading/account-state)
+          echo "account-state (mock) -> $STATE2"
+          if [ "$(echo "$STATE2" | jq -e '.provider')" != '"mock"' ]; then echo "::error::provider mock tidak aktif"; exit 1; fi
+          if [ -z "$(echo "$STATE2" | jq -r '.state.equity // empty')" ]; then echo "::error::snapshot equity tidak terisi"; exit 1; fi
+          kill $API_PID 2>/dev/null || true
+          echo "✅ scheduler/provider teruji tanpa menyentuh vendor"
