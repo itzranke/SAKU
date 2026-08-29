@@ -209,7 +209,7 @@ jobs:
           echo "POST /integrations -> $RESP"
           if echo "$RESP" | grep -q "$SECRET"; then echo "::error::respons POST mengembalikan investor password"; exit 1; fi
           if echo "$RESP" | grep -q 'credentialCipher'; then echo "::error::credentialCipher bocor di respons POST"; exit 1; fi
-          ID=$(echo "$RESP" | jq -r .id)
+          ID=$(echo "$RESP" | jq -r '.integration.id')
           LIST=$(curl -sf http://localhost:4000/api/v1/integrations)
           if echo "$LIST" | grep -q "$SECRET"; then echo "::error::GET /integrations membocorkan kredensial"; exit 1; fi
           if echo "$LIST" | grep -q 'credentialCipher'; then echo "::error::GET /integrations mengembalikan credentialCipher"; exit 1; fi
