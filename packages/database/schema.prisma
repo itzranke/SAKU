@@ -27,6 +27,32 @@ enum SourceType {
   RECONCILIATION
 }
 
+/// Where a closed-deal row was ingested from. Drives idempotency bookkeeping
+/// in `processed_deals` and the Source badge in the UI (ADR-022).
+enum DealSource {
+  MT5_SYNC
+  STATEMENT
+  EA_LEGACY
+}
+
+/// APPEND-ONLY dedupe ledger (M1 / ADR-022).
+/// One row per (account, ticket) that has already produced a journal, so a
+/// re-sync — from the cloud connector, a statement re-import, or the legacy EA —
+/// is idempotent ACROSS API restarts (previously an in-memory Set).
+/// A ProcessedDeal row is only ever written inside the same DB transaction that
+/// appends its journal: one fails, both roll back.
+model ProcessedDeal {
+  id       String     @id @default(uuid())
+  account  String // broker login / account id, e.g. "1048291"
+  ticket   String // MT5 deal ticket (or statement row hash)
+  source   DealSource @default(MT5_SYNC)
+  syncedAt DateTime   @default(now())
+
+  @@unique([account, ticket])
+  @@index([account, syncedAt])
+  @@map("processed_deals")
+}
+
 model Workspace {
   id           String      @id @default(uuid())
   name         String
@@ -86,6 +112,35 @@ model LedgerEntry {
   @@index([accountId])
   @@index([journalId])
   @@map("ledger_entries")
+}
+
+/// MT5 (and future) connector credentials, stored ENCRYPTED AT REST (AES-256-GCM).
+/// Single-user phase: `ownerId` is the constant "user-local". Read-only doctrine:
+/// only an INVESTOR password may ever be persisted (ADR-022), and the ciphertext is
+/// never returned by the API. Deleting the row is the disconnect flow (rotate the
+/// investor password at the broker afterwards).
+enum IntegrationType {
+  MT5_CLOUD
+  MT5_STATEMENT
+}
+
+model IntegrationAccount {
+  id               String          @id @default(uuid())
+  ownerId            String        @default("user-local")
+  type               IntegrationType
+  label              String
+  login              String
+  server             String
+  port               Int?
+  enabled            Boolean       @default(true)
+  credentialCipher   String // "iv:tag:ciphertext" (base64) — never serialized out of the API
+  vendorAccountId    String? // MetaApi accountId, once provisioned
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  @@unique([ownerId, type, login])
+  @@index([ownerId, enabled])
+  @@map("integration_accounts")
 }
 
 model Trade {

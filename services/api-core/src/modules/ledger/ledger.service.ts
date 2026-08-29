@@ -18,8 +18,10 @@ import {
 } from '@saku/ledger-core';
 import {
   LEDGER_REPOSITORY,
+  DealSource,
   LedgerRepository,
   NewAccountInput,
+  NewJournalInput,
 } from './ledger.repository';
 
 export interface RawJournalBody {
@@ -28,6 +30,27 @@ export interface RawJournalBody {
   source?: SourceType;
   entries: Array<{ accountId: string; amount: number; currency?: string; exchangeRate?: number }>;
 }
+
+/** Input of the idempotent broker-deal write path (see LedgerService.postBrokerDeal). */
+export interface BrokerDealInput {
+  /** SAKU ledger account (code or name) that receives the realized P&L. */
+  account: string;
+  /** Broker login used as the dedupe key together with `ticket`. */
+  login: string;
+  ticket: string;
+  symbol?: string;
+  /** Signed NET P&L (profit + commission + swap), account currency. */
+  profit: number;
+  currency?: string;
+  exchangeRate?: number;
+  date?: string; // YYYY-MM-DD
+  source?: DealSource;
+}
+
+export type BrokerDealResult =
+  | { kind: 'posted'; ticket: string; journal: JournalRecord; dedupeApplied: boolean }
+  | { kind: 'duplicate'; ticket: string; reason: string }
+  | { kind: 'skipped'; ticket: string; reason: string };
 
 @Injectable()
 export class LedgerService {
@@ -153,6 +176,100 @@ export class LedgerService {
       },
       'MT5_SYNC'
     );
+  }
+
+  /**
+   * M1 / ADR-022 — journalizing path for one closed broker deal.
+   *
+   * Unlike `postTradeProfit` (which is the generic write used by the legacy bridge),
+   * this route is idempotent at the STORAGE level: the journal and its
+   * `processed_deals` marker are written by `appendJournalOncePerDeal` in a single
+   * transaction, so re-running a sync (or restarting the API) never double-posts.
+   *
+   * `source` is the ingest channel (MT5_SYNC from the cloud connector, STATEMENT from
+   * the reconciliation import, EA_LEGACY from the deprecated bridge). Journals are
+   * recorded with the matching ledger SourceType.
+   */
+  async postBrokerDeal(input: BrokerDealInput): Promise<BrokerDealResult> {
+    const net = Number(input.profit);
+    if (!net || Number.isNaN(net)) {
+      return { kind: 'skipped', ticket: input.ticket, reason: 'zero-profit deal produces no journal' };
+    }
+    const dealSource: DealSource = input.source ?? 'MT5_SYNC';
+    // EA_LEGACY is recorded as MT5_SYNC until the ledger enum gains that variant (M3, ADR-022).
+    const journalSource: SourceType = dealSource === 'STATEMENT' ? 'STATEMENT_IMPORT' : 'MT5_SYNC';
+
+    const accounts = await this.repo.listAccounts();
+    let draft;
+    try {
+      draft = buildDraftJournalFromTransaction(
+        {
+          amount: net, // signed: the mapper routes losses to the expense leg
+          type: 'TRADING_PROFIT',
+          description: `MT5 ${input.symbol ?? 'Trade'} #${input.ticket} — Realized P&L`,
+          account: input.account,
+          currency: input.currency,
+          exchangeRate: input.exchangeRate,
+          date: input.date,
+        },
+        accounts,
+        journalSource
+      );
+    } catch (err) {
+      throw new BadRequestException((err as Error).message);
+    }
+    if (!draft.validation.isValid) {
+      throw new BadRequestException(draft.validation.error ?? 'Unbalanced journal.');
+    }
+
+    const journalInput: NewJournalInput = {
+      description: draft.description,
+      date: draft.date,
+      source: draft.source,
+      txType: draft.txType,
+      category: draft.category,
+      entries: draft.entries,
+    };
+
+    if (!this.repo.appendJournalOncePerDeal) {
+      // Repository without persistent dedupe -> caller keeps its volatile Set fallback.
+      const journal = await this.repo.appendJournal(journalInput);
+      return { kind: 'posted', ticket: input.ticket, journal, dedupeApplied: false };
+    }
+
+    const result = await this.repo.appendJournalOncePerDeal(journalInput, {
+      account: input.login,
+      ticket: input.ticket,
+      source: dealSource,
+    });
+    if (result.duplicate) {
+      return {
+        kind: 'duplicate',
+        ticket: input.ticket,
+        reason: `deal ${input.login}:${input.ticket} already journalized (dedupe store)`,
+      };
+    }
+    this.logger.log(
+      `Journal ${result.journal!.id} posted from deal ${input.login}:${input.ticket} (${dealSource}, ${draft.validation.totalDebits} base-IDR).`
+    );
+    return { kind: 'posted', ticket: input.ticket, journal: result.journal!, dedupeApplied: true };
+  }
+
+  /** Dedupe bookkeeping for /trading/state + ops dashboards. */
+  async countProcessedDeals(login?: string): Promise<number> {
+    if (!this.repo.countProcessedDeals) return 0;
+    return this.repo.countProcessedDeals(login);
+  }
+
+  /**
+   * Which dedupe store is live:
+   *  - 'postgres'  -> `processed_deals` table; dedupe survives restarts (M1 contract)
+   *  - 'memory'    -> adapter-local dedupe (dev/demo InMemoryLedgerRepository)
+   *  - 'none'      -> adapter has no dedupe support; callers fall back to their volatile Set
+   */
+  dedupeMode(): 'postgres' | 'memory' | 'none' {
+    if (typeof this.repo.appendJournalOncePerDeal !== 'function') return 'none';
+    return this.repo.persistence === 'postgres' ? 'postgres' : 'memory';
   }
 
   async getJournals(limit?: number) {

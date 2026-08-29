@@ -11,11 +11,15 @@ import {
   buildJournalLegs,
   JournalRecord,
   LedgerEntryInput,
+  validateJournalEntries,
 } from '@saku/ledger-core';
 import {
+  DealSource,
+  DedupeAppendResult,
   LedgerRepository,
   NewAccountInput,
   NewJournalInput,
+  ProcessedDealRef,
 } from './ledger.repository';
 
 const SEED_ACCOUNTS: AccountDef[] = [
@@ -59,8 +63,11 @@ const SEED_JOURNALS: SeedTx[] = [
 @Injectable()
 export class InMemoryLedgerRepository implements LedgerRepository {
   readonly workspaceId = 'default-workspace-id';
+  readonly persistence = 'memory' as const;
   private accounts: AccountDef[] = [...SEED_ACCOUNTS];
   private journals: JournalRecord[] = [];
+  /** M1 dedupe mirror of `processed_deals`: "account:ticket" -> ingest source. */
+  private readonly processedDeals = new Map<string, DealSource>();
   private seq = 0;
 
   constructor() {
@@ -179,7 +186,42 @@ export class InMemoryLedgerRepository implements LedgerRepository {
   }
 
   appendJournal(input: NewJournalInput): Promise<JournalRecord> {
+    this.assertBalanced(input);
     return Promise.resolve(this.pushJournal(input));
+  }
+
+  /** Defense-in-depth, mirroring PrismaLedgerRepository: the store rejects unbalanced journals. */
+  private assertBalanced(input: NewJournalInput) {
+    const validation = validateJournalEntries(input.entries);
+    if (!validation.isValid) throw new Error(validation.error ?? 'Unbalanced journal.');
+  }
+
+  /**
+   * M1 / ADR-022 — dedupe semantics identical to the Prisma adapter, backed by an
+   * in-process Map (volatile by design; the persistent table takes over when DATABASE_URL
+   * is set). Kept so unit tests, `pnpm dev` and demo mode behave exactly like production.
+   */
+  async appendJournalOncePerDeal(input: NewJournalInput, deal: ProcessedDealRef): Promise<DedupeAppendResult> {
+    const key = `${deal.account}:${deal.ticket}`;
+    if (this.processedDeals.has(key)) {
+      return { duplicate: true, journal: null };
+    }
+    this.assertBalanced(input); // throws -> marker is never recorded (all-or-nothing)
+    const journal = this.pushJournal(input);
+    this.processedDeals.set(key, deal.source);
+    return { duplicate: false, journal };
+  }
+
+  isDealProcessed(account: string, ticket: string): Promise<boolean> {
+    return Promise.resolve(this.processedDeals.has(`${account}:${ticket}`));
+  }
+
+  countProcessedDeals(account?: string): Promise<number> {
+    if (!account) return Promise.resolve(this.processedDeals.size);
+    const prefix = `${account}:`;
+    let n = 0;
+    for (const key of this.processedDeals.keys()) if (key.startsWith(prefix)) n += 1;
+    return Promise.resolve(n);
   }
 
   listJournals(limit?: number): Promise<JournalRecord[]> {

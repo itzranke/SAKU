@@ -26,13 +26,47 @@ export interface NewAccountInput {
   code?: string;
 }
 
+/** M1 / ADR-022 — identity of an ingested closed deal used for idempotency. */
+export type DealSource = 'MT5_SYNC' | 'STATEMENT' | 'EA_LEGACY';
+
+export interface ProcessedDealRef {
+  /** Broker login / account id (matches the dedupe key `account:ticket`). */
+  account: string;
+  ticket: string;
+  source: DealSource;
+}
+
+export interface DedupeAppendResult {
+  /** True when this (account, ticket) already produced a journal earlier. */
+  duplicate: boolean;
+  journal: JournalRecord | null;
+}
+
+type LegRow = {
+  accountId: string;
+  accountCode: string;
+  amount: number;
+  currency: string;
+  exchangeRate: number;
+};
+
 const toNumber = (v: unknown): number => Number(v == null ? 0 : String(v));
+
+/** Internal control-flow marker: the (account, ticket) pair already has a journal. */
+export class DealAlreadyProcessedError extends Error {
+  constructor(account?: string, ticket?: string) {
+    super(`Deal ${account ?? ''}:${ticket ?? ''} was already journalized (processed_deals).`);
+    this.name = 'DealAlreadyProcessedError';
+  }
+}
+
 
 type EntryRow = { accountId: string; amount: unknown; currency: string; exchangeRate: unknown };
 type AccountRow = { id: string; code: string; name: string; type: string; currency: string; isActive: boolean };
 
 export class PrismaLedgerRepository {
   readonly workspaceId: string;
+  readonly persistence = 'postgres' as const;
   private readonly prisma: PrismaClient;
   private connected = false;
 
@@ -113,10 +147,66 @@ export class PrismaLedgerRepository {
     const validation = validateJournalEntries(input.entries);
     if (!validation.isValid) throw new Error(validation.error ?? 'Unbalanced journal.');
     const prisma = await this.db();
+    const legs = await this.buildLegs(input);
 
+    const created = await prisma.$transaction(async (tx: any) => this.insertJournal(tx, input, legs));
+    return this.toJournalRecord(created, input, legs);
+  }
+
+  /**
+   * M1 / ADR-022 — atomic "journal + dedupe marker" write.
+   *
+   * The journal append and the `processed_deals` insert share ONE transaction, so:
+   *   * a failed journal write leaves no dedupe row (the deal is retried later);
+   *   * a dedupe row is never present without its journal (no silently "lost" deals).
+   * A concurrent duplicate surfaces as a unique-violation (P2002) that rolls the whole
+   * transaction back and is reported as `{ duplicate: true }`.
+   */
+  async appendJournalOncePerDeal(input: NewJournalInput, deal: ProcessedDealRef): Promise<DedupeAppendResult> {
+    const validation = validateJournalEntries(input.entries);
+    if (!validation.isValid) throw new Error(validation.error ?? 'Unbalanced journal.');
+    const prisma = await this.db();
+    const legs = await this.buildLegs(input);
+
+    try {
+      const created = await prisma.$transaction(async (tx: any) => {
+        const seen = await tx.processedDeal.findUnique({
+          where: { account_ticket: { account: deal.account, ticket: deal.ticket } },
+        });
+        if (seen) throw new DealAlreadyProcessedError();
+        const journal = await this.insertJournal(tx, input, legs);
+        await tx.processedDeal.create({
+          data: { account: deal.account, ticket: deal.ticket, source: deal.source as never },
+        });
+        return journal;
+      });
+      return { duplicate: false, journal: this.toJournalRecord(created, input, legs) };
+    } catch (err) {
+      if (err instanceof DealAlreadyProcessedError || (err as any)?.code === 'P2002') {
+        return { duplicate: true, journal: null }; // transaction rolled back — nothing was written
+      }
+      throw err;
+    }
+  }
+
+  /** Read-only probe used by /trading/state and the CI smoke test. */
+  async isDealProcessed(account: string, ticket: string): Promise<boolean> {
+    const prisma = await this.db();
+    const hit = await prisma.processedDeal.findUnique({
+      where: { account_ticket: { account, ticket } },
+    });
+    return Boolean(hit);
+  }
+
+  async countProcessedDeals(account?: string): Promise<number> {
+    const prisma = await this.db();
+    return prisma.processedDeal.count({ where: account ? { account } : {} });
+  }
+
+  private async buildLegs(input: NewJournalInput): Promise<LegRow[]> {
     const accounts = await this.accounts();
     const byCode = new Map<string, AccountRow>(accounts.map((a) => [a.code, a]));
-    const legs = input.entries.map((e) => {
+    return input.entries.map((e) => {
       const acc = byCode.get(e.accountId);
       if (!acc) {
         throw new Error(
@@ -131,30 +221,32 @@ export class PrismaLedgerRepository {
         exchangeRate: e.exchangeRate ?? 1,
       };
     });
+  }
 
-    const created = await prisma.$transaction(async (tx: any) => {
-      const journal = await tx.ledgerJournal.create({
-        data: {
-          workspaceId: this.workspaceId,
-          description: input.description,
-          source: input.source as never,
-          txType: input.txType,
-          category: input.category,
-          postedAt: new Date(`${input.date}T00:00:00.000Z`),
-        },
-      });
-      await tx.ledgerEntry.createMany({
-        data: legs.map((l) => ({
-          journalId: journal.id,
-          accountId: l.accountId,
-          amount: l.amount,
-          currency: l.currency,
-          exchangeRate: l.exchangeRate,
-        })),
-      });
-      return journal;
+  private async insertJournal(tx: any, input: NewJournalInput, legs: LegRow[]) {
+    const journal = await tx.ledgerJournal.create({
+      data: {
+        workspaceId: this.workspaceId,
+        description: input.description,
+        source: input.source as never,
+        txType: input.txType,
+        category: input.category,
+        postedAt: new Date(`${input.date}T00:00:00.000Z`),
+      },
     });
+    await tx.ledgerEntry.createMany({
+      data: legs.map((l) => ({
+        journalId: journal.id,
+        accountId: l.accountId,
+        amount: l.amount,
+        currency: l.currency,
+        exchangeRate: l.exchangeRate,
+      })),
+    });
+    return journal;
+  }
 
+  private toJournalRecord(created: any, input: NewJournalInput, legs: LegRow[]): JournalRecord {
     return {
       id: created.id,
       postedAt: created.postedAt.toISOString(),

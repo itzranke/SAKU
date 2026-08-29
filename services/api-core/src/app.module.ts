@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AuthController } from './modules/auth/auth.controller';
 import { AuthService } from './modules/auth/auth.service';
 import { AccountsController } from './modules/accounts/accounts.controller';
@@ -25,6 +26,16 @@ import { LedgerController } from './modules/ledger/ledger.controller';
 import { LedgerService } from './modules/ledger/ledger.service';
 import { InMemoryLedgerRepository } from './modules/ledger/in-memory-ledger.repository';
 import { LEDGER_REPOSITORY, LedgerRepository } from './modules/ledger/ledger.repository';
+import { IntegrationsController } from './modules/integrations/integrations.controller';
+import { IntegrationsService } from './modules/integrations/integrations.service';
+import { InMemoryIntegrationsRepository } from './modules/integrations/in-memory-integrations.repository';
+import {
+  INTEGRATIONS_REPOSITORY,
+  IntegrationsRepository,
+} from './modules/integrations/integrations.repository';
+import { CryptoService } from './modules/security/crypto.service';
+import { RedactionInterceptor } from './modules/security/redaction.interceptor';
+import { MT5_PROVIDER, buildMt5Provider } from './modules/integrations/providers/provider.factory';
 
 /**
  * Ledger persistence switch (Tahap 4 wiring):
@@ -48,6 +59,26 @@ export function buildLedgerRepository(): LedgerRepository | Promise<LedgerReposi
   return new InMemoryLedgerRepository();
 }
 
+/**
+ * Integrations persistence switch (ADR-022 M2) — same rule as the ledger:
+ * DATABASE_URL set -> Prisma (integration_accounts, ciphertext at rest), else volatile in-memory.
+ */
+export function buildIntegrationsRepository(): IntegrationsRepository {
+  if (process.env.DATABASE_URL) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const db = require('@saku/database');
+      return new db.PrismaIntegrationsRepository(process.env.DATABASE_URL);
+    } catch (err) {
+      Logger.warn(
+        `DATABASE_URL is set but @saku/database PrismaIntegrationsRepository failed to load (${(err as Error).message}). Falling back to in-memory integrations.`,
+        'IntegrationsBootstrap'
+      );
+    }
+  }
+  return new InMemoryIntegrationsRepository();
+}
+
 @Module({
   imports: [],
   controllers: [
@@ -62,6 +93,7 @@ export function buildLedgerRepository(): LedgerRepository | Promise<LedgerReposi
     B2bController,
     ObsidianController,
     LedgerController,
+    IntegrationsController,
   ],
   providers: [
     AuthService,
@@ -76,9 +108,24 @@ export function buildLedgerRepository(): LedgerRepository | Promise<LedgerReposi
     B2bService,
     ObsidianService,
     LedgerService,
+    CryptoService,
+    IntegrationsService,
     {
       provide: LEDGER_REPOSITORY,
       useFactory: buildLedgerRepository,
+    },
+    {
+      provide: INTEGRATIONS_REPOSITORY,
+      useFactory: buildIntegrationsRepository,
+    },
+    {
+      provide: MT5_PROVIDER,
+      useFactory: buildMt5Provider,
+    },
+    {
+      // Global credential redaction: responses are stripped, access log is scrubbed.
+      provide: APP_INTERCEPTOR,
+      useClass: RedactionInterceptor,
     },
   ],
 })
