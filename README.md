@@ -25,7 +25,7 @@
 2. **Unified Net Worth Aggregation**: Consolidates Bank Accounts (BCA, Mandiri), E-Wallets (GoPay, OVO), Cash, Stocks (IDX/US), and Active MT5 Forex trading accounts in one unified dashboard.
 3. **SONZI Framework Financial Health Engine**: Adaptive 3-stage wealth protection engine (Stage 1 Safety $\to$ Stage 2 Growth $\to$ Stage 3 FIRE) with customizable risk allocation profiles (Conservative, Moderate, Aggressive).
 4. **Statement Import & Staging Sandbox**: Drag-and-drop CSV/PDF bank statement uploader with automated Rule Matcher Engine (`GRAB` $\to$ `Transport`) before ledger posting.
-5. **MetaTrader 5 (MT5) EA Bridge**: MQL5 Expert Advisor script (`SakuBridge.mq5`) with real-time `OnTradeTransaction()` hook for read-only equity, margin, and profit/loss sync.
+5. **MetaTrader 5 (MT5) Cloud Connector** (ADR-022): read-only server-side sync — user mengisi login + **investor password** + server di Settings → Integrations, SAKU yang menarik snapshot & closed deals (tidak ada yang diinstal di terminal). Rekonsiliasi via import statement/CSV. The MQL5 `SakuBridge.mq5` push EA is **deprecated** and kept as an optional zero-privacy-password path for power users (`services/deprecated/mt5-ea/`).
 6. **Fast Assistant Ingestion Bot**: Telegram Bot Webhook worker (`/api/v1/bot/telegram`) with deterministic grammar parser (`Kopi 25k BCA`) and Rp 10.000.000 staging threshold guardrails.
 7. **Cross-Platform Support**: Web (Next.js 14 App Router), PC Desktop (Tauri 2.0 Rust), and Mobile App (React Native Expo).
 
@@ -46,7 +46,7 @@ saku/
 │
 ├── services/
 │   ├── api-core/          # NestJS Primary Backend REST & WebSocket API Service
-│   └── mt5-bridge-ea/     # MQL5 Local Expert Advisor Script (SakuBridge.mq5)
+│   └── deprecated/mt5-ea/ # Legacy MQL5 push EA (SakuBridge.mq5) — optional, ADR-022
 │
 ├── CHECKLIST_TREE.md      # Live Production Execution Checklist Tree (Phase 1 - 10 Completed)
 ├── PRD.md                 # Product Requirements Document
@@ -63,7 +63,7 @@ saku/
 [x] PHASE 2: Core Double-Entry Accounting Engine & Database Schemas
 [x] PHASE 3: Next.js Interactive Dashboard & Transaction Entry Modals
 [x] PHASE 4: NestJS REST & WebSocket API Core Service
-[x] PHASE 5: MetaTrader 5 Local Bridge EA & Trading Journal
+[x] PHASE 5: MetaTrader 5 Trading Journal (jalur EA kini legacy; default = cloud connector, lihat docs/22)
 [x] PHASE 6: Telegram Fast Assistant Ingestion Bot & Grammar Parser
 [x] PHASE 7: Statement Import & Staging Sandbox Rule Engine
 [x] PHASE 8: SONZI Framework Engine & Financial Health Ratio Indicators

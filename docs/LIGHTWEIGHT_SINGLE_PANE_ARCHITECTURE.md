@@ -41,7 +41,12 @@ By focusing strictly on **Centralized Consolidation, Clean Recording, and Unifie
 3. **Frictionless Fast Ingestion**:
    - 1-Tap Modal, WhatsApp/Telegram Bot ("Kopi 25k BCA"), or CSV Import.
 4. **Read-Only MT5 Equity & Journal Viewer**:
-   - Lightweight MQL5 EA or Read-Only Investor Sync that ONLY reads Balance, Equity, and Closed Deals.
+   - Default: **cloud connector read-only** (login + investor password + server di Settings →
+     Integrations). SAKU menarik Balance/Equity/Closed Deals dari sisi server — terminal user
+     tidak perlu menyala, tidak ada yang diinstal. Equity = tampilan; hanya closed deals yang
+     melahirkan jurnal. Fallback resmi: import statement/CSV.
+   - Lightweight MQL5 EA (`services/deprecated/mt5-ea/`) dipertahankan sebagai **opsi privasi
+     zero-password** untuk power user — legacy, lihat ADR-022.
 5. **Simple Loan & Debt Tracker**:
    - Track remaining principal balance for KPR/Motor with a 1-tap "Bayar Angsuran" button.
 

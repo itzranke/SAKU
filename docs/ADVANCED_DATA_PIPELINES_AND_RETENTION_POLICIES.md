@@ -19,7 +19,7 @@ Offline cash tracking and live MT5 broker streams belong to fundamentally separa
 │ PIPELINE A: OFFLINE CLIENT QUEUE (Kas Tunai / Local Input)                  │
 │ └── Local Device Storage (SQLite/IndexedDB) ──► Asynchronous Sync on Network │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ PIPELINE B: SERVER BROKER STREAM (MT5 Live EA Bridge)                      │
+│ PIPELINE B: BROKER STREAM MT5 (cloud connector read-only; EA push = legacy) │
 │ └── Server WebSocket / ZMQ Socket ──► Real-Time Server Journal Posting       │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```

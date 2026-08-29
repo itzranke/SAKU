@@ -38,7 +38,7 @@
 * Telegram/WhatsApp Assistant Bot (`Kopi 25k BCA`) with cryptographic user verification and deterministic grammar sanitization.
 * Staging sandbox modal for PDF/CSV e-Statement imports with automated rule-matching categories.
 
-### 3.4 Read-Only MT5 Local EA Bridge
+### 3.4 Read-Only MT5 Local EA Bridge *(legacy — lihat ADR-022; jalur default kini konektor cloud investor-password, EA tetap tersedia sebagai opsi privasi zero-password)*
 * MQL5 Expert Advisor (`SakuBridge.mq5`) pushing read-only account balance, floating equity, margin, and closed trade deals over encrypted WebSockets/HTTPS.
 * Event-driven `OnTradeTransaction()` execution to eliminate MT5 terminal CPU/RAM lag.
 

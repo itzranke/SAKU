@@ -29,7 +29,7 @@
 ---
 
 ## EPIC 3: METATRADER 5 (MT5) LOCAL BRIDGE & TRADING JOURNAL
-- [x] Create MQL5 Expert Advisor script (`services/mt5-bridge-ea/SakuBridge.mq5`)
+- [x] Create MQL5 Expert Advisor script (`services/mt5-bridge-ea/SakuBridge.mq5`) — *(legacy: pindah ke `services/deprecated/mt5-ea/` di ADR-022; default = konektor cloud read-only)*
 - [x] Implement event-driven `OnTradeTransaction()` hook in MQL5 to send read-only account balance, equity, margin, and deal state
 - [x] Build NestJS `/api/v1/trading/sync` endpoint in `@saku/api-core` to receive MT5 payload
 - [x] Implement Trading Journal view state controller (`/api/v1/trading/state`)

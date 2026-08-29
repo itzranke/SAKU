@@ -65,6 +65,10 @@ SAKU consolidates **12 Real-World Financial Touchpoints** across offline and onl
    - Memantau nilai portofolio terkini dari Bibit, Stockbit, Indodax, Tokocrypto, dan Seabank/Jago.
 6. **Active Trading MT5 (Forex & Gold)**:
    - Menampilkan ekuitas live dan profit/loss harian dari akun MetaTrader 5 secara *read-only*.
+   - Sumber data (ADR-022): **konektor cloud investor-password** (server-side pull, tanpa EA,
+     tanpa terminal nyala) + **rekonsiliasi statement/CSV** sebagai dokumen resmi. Ekuitas hanya
+     tampilan — angka masuk ke kekayaan lewat jurnal deal. EA `SakuBridge.mq5` berstatus
+     *legacy* (opsi privasi zero-password), lihat `services/deprecated/mt5-ea/`.
 
 ---
 

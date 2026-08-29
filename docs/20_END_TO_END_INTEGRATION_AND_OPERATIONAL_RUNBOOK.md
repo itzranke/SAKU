@@ -41,5 +41,13 @@ eas build --platform ios --profile production
 
 1. **Database Hypertable Compression Failure**:  
    Run `SELECT compress_chunk(i) FROM show_chunks('ledger_entries') i;` in PostgreSQL TimescaleDB console.
-2. **MT5 Sync Disconnection Alert**:  
-   Check `SakuBridge.mq5` Expert Advisor logs in MT5 Terminal -> Experts tab. Ensure WebRequest URL `http://your-api-domain.com/api/v1/trading/sync` is permitted in MT5 Tools -> Options -> Expert Advisors -> Allow WebRequest for listed URL.
+2. **MT5 Sync Stalled / Connector Down** (jalur default pasca ADR-022 — tanpa EA):
+   Cek `GET /api/v1/trading/account-state` (`enabled`, umur data di `state.updatedAt`) dan
+   log API `Mt5Bootstrap`/`SyncSchedulerService`. Penyebab umum: `MT5_CLOUD_ENABLED=false`,
+   `METAAPI_TOKEN` kedaluwarsa/kuota habis, atau investor password diganti di broker
+   (PUTAR ulang & simpan lagi lewat Settings -> Integrations -> PATCH). Data yang tertinggal
+   ditutup otomatis oleh pass berikutnya (dedupe `processed_deals`), dan ground-truth-nya
+   **import statement/CSV MT5**.
+   Installasi EA lama (legacy, lihat ADR-022): periksa log `SakuBridge.mq5` di MT5 Terminal ->
+   Experts tab dan whitelist WebRequest `http://your-api-domain.com/api/v1/trading/sync`
+   di MT5 Tools -> Options -> Expert Advisors.

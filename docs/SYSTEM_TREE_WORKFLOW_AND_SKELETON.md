@@ -53,7 +53,7 @@ saku/
 │   ├── market-worker/                      # Go Microservice (Market Quotes)
 │   │   └── main.go
 │   │
-│   └── mt5-bridge-ea/                      # MetaTrader 5 Local Bridge EA
+│   └── deprecated/mt5-ea/                  # MetaTrader 5 push EA (legacy, ADR-022)
 │       └── SakuBridge.mq5                  # MQL5 OnTradeTransaction() Hook Script
 │
 ├── docs/                                   # Complete Knowledge Bank & Blueprints

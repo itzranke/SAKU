@@ -10,7 +10,7 @@ There is currently **no single platform in the world** that unifies:
 1. **Immutable Double-Entry Personal Ledger** (accounting for offline cash, informal debt/receivables, and KPR loan principal vs interest splits),
 2. **Frictionless Fast Ingestion** (WhatsApp/Telegram Bot + AI OCR receipt scan),
 3. **Long-Term Wealth Portfolio Management** (Stocks, Mutual Funds, Crypto with FIFO Cost Basis), AND
-4. **Active MT4/MT5 High-Frequency Trading Journal** (Read-Only Local EA Bridge, Drawdown, Profit Factor, MFE/MAE analytics).
+4. **Active MT4/MT5 High-Frequency Trading Journal** (read-only cloud connector dengan investor password, Drawdown, Profit Factor, MFE/MAE analytics; jalur Local EA Bridge = legacy, lihat ADR-022).
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐

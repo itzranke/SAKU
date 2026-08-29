@@ -23,7 +23,7 @@ How does SAKU generate revenue to sustain long-term development without compromi
 │                                   │ • EOD Market Data Snapshots             │
 ├───────────────────────────────────┼─────────────────────────────────────────┤
 │ 2. PRO SUBSCRIPTION               │ • Unlimited Wallets & Pockets           │
-│    (Rp 49.000/month or $4.99/mo)  │ • MT5 Local Bridge EA Real-Time Sync    │
+│    (Rp 49.000/month or $4.99/mo)  │ • MT5 read-only cloud sync (EA lokal = legacy, ADR-022)    │
 │                                   │ • Telegram / WhatsApp Fast Bot Capture  │
 │                                   │ • Encrypted Cloud Backup Sync           │
 │                                   │ • Advanced Risk & Health Analytics      │
