@@ -131,3 +131,67 @@ curl -s https://api.github.com/repos/itzranke/SAKU/pulls/6 | head -40          #
 curl -s https://api.github.com/repos/itzranke/SAKU/branches/main              # SHA main
 curl -s https://raw.githubusercontent.com/itzranke/SAKU/main/docs/ci/23_CI_PROPOSED.yml
 ```
+
+## 8) Addendum sesi 2026-08-30 — gate CI live, 2 bug gate diperbaiki, v1.2.0 terbit
+
+> Addendum ini hanya MENAMBAH; §1–§7 dipertahankan apa adanya (catatan historis).
+> Item C dan D pada §3 kini TUNTAS — rinciannya di bawah. Semua SHA di bawah
+> diverifikasi via `api.github.com/repos/itzranke/SAKU/commits?per_page=8` & `/releases`.
+
+### 8.1) Gate CI terpasang di main (penutup item C §3)
+
+- User memasang gate CI manual **via editor web GitHub** ke `.github/workflows/ci.yml`
+  (commit user `4c53783` "Enhance CI workflow with typecheck and unit tests") — sesuai
+  pola `docs/ci/23_CI_APPLY_GUIDE.md`. `ci.yml` di main kini = versi gate lengkap:
+  loop migrasi SEMUA folder + step M1/M2/M3 (typecheck + unit test).
+- CI main HIJAU dengan gate ini: M1 idempotensi + M2 redaksi + M3 provider mock lulus.
+- Konsekuensi: `docs/ci/23_CI_PROPOSED.yml` kini murni mirror dokumen usulan. Bila
+  `ci.yml` berubah lagi, sinkronkan dokumennya — arah perubahan `ci.yml → PROPOSED`,
+  bukan sebaliknya. (Sesi 2026-08-30: sinkronisasi baris `jq -r '.integration.id'`
+  dikerjakan ulang via PR docs karena mirror-nya tertinggal.)
+
+### 8.2) Dua bug tertangkap gate CI — root cause & fix (fix oleh USER via editor web; JANGAN diulang/di-push ulang)
+
+1. **verify.sql M3 — error `text = integer` di postgres:16.**
+   - Gejala: step verify migrasi M3 gagal; postgres:16 menolak `v_src = 0` karena
+     `v_src` bertipe `TEXT` dibandingkan dengan integer `0`.
+   - Root cause: pola lama menampung hasil `count()` ke variabel `TEXT` lalu
+     membandingkannya dengan angka.
+   - Fix (commit user `9d1e376` "fix(ci): M3 verify — ganti count()=0 (text=integer)
+     dengan IF NOT EXISTS"): perbandingan diganti blok `IF NOT EXISTS (...)`.
+   - Pelajaran (masuk §4/jebakan): **verify.sql jangan tampung `count()` ke TEXT lalu
+     bandingkan angka — pakai `IF NOT EXISTS`.**
+
+2. **step M2 — exit 22 senyap (`curl -sf` di dalam substitusi perintah).**
+   - Gejala: step M2 mati `exit 22` TANPA pesan apa pun di log Actions.
+   - Root cause berantai: skrip mengambil ID dari respons `POST /integrations` dengan
+     `jq -r .id`, padahal bentuk responsnya `{integration:{id},notice}` (ID **nested**
+     di dalam objek `integration`) → `ID=null` → panggilan lanjutan ke
+     `/integrations/null/test` → HTTP 404 → `curl -sf` keluar exit 22, dan karena
+     keluaran curl sedang **disubstitusi ke variabel**, pesan error curl tidak pernah
+     tercetak (substitusi perintah tidak menampilkan apa pun ke log).
+   - Fix (commit user `6d01363` "fix(ci): M2 step — jq ambil .integration.id
+     (respons berbentuk {integration,notice})"): `ID=$(echo "$RESP" | jq -r '.integration.id')`.
+   - Pelajaran (masuk §4/jebakan): **respons POST /integrations = `{integration:{id},notice}`
+     — ID nested.** Cara membaca exit-22 senyap: lihat §8.4.
+
+### 8.3) Rilis v1.2.0 terbit (penutup item D §3)
+
+- Release **v1.2.0** sudah terbit di GitHub Releases (`published_at`
+  2026-08-29T22:01:54Z), judul "v1.2.0 — MT5 sync tanpa-EA (investor password) +
+  processed_deals persist + EA deprecated".
+- **Tanpa aset biner** (assets: 0) — unduhan binary tetap merujuk `v1.0.0`.
+  Jangan klaim biner baru di komunikasi apa pun.
+
+### 8.4) Pelajaran debug: exit 22 dari `curl -sf` yang "diam"
+
+- `set -euo pipefail` + substitusi perintah (`VAR=$(curl -sf ...)`) membunuh skrip di
+  baris substitusi TANPA mencetak apa pun: keluaran curl ditangkap ke variabel, jadi
+  pesan error-nya tak pernah tampil di log Actions.
+- `curl -sf` exit 22 = **HTTP status ≥ 400** (respons error dari server, bukan gagal koneksi).
+- Cara menemukan baris yang gagal: **baris gagal = substitusi `curl -sf` PERTAMA yang
+  muncul SETELAH `echo` terakhir yang sempat tercetak di log.** Semua `echo` sebelum
+  baris itu terlihat; semua yang setelahnya hilang.
+- Mitigasi saat menulis step baru: jangan sembunyikan panggilan curl yang statusnya
+  penting di dalam substitusi, atau selipkan `echo` penanda fase agar posisi kegagalan
+  selalu bisa dihitung.
