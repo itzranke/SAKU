@@ -13,3 +13,4 @@ export {
   NewIntegrationInput,
   IntegrationPatch,
 } from './prisma-integrations.repository';
+export { PrismaSessionStore, PersistedSession } from './prisma-session.store';

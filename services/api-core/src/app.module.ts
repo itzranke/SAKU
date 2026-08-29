@@ -31,6 +31,7 @@ import { LEDGER_REPOSITORY, LedgerRepository } from './modules/ledger/ledger.rep
 import { IntegrationsController } from './modules/integrations/integrations.controller';
 import { ConnectorsController } from './modules/connectors/connectors.controller';
 import { SessionService } from './modules/auth/session.service';
+import { SESSION_STORE, SessionStore } from './modules/auth/session.store';
 import { OwnerGuard } from './modules/auth/owner.guard';
 import { APP_GUARD } from '@nestjs/core';
 import { IntegrationsService } from './modules/integrations/integrations.service';
@@ -85,6 +86,27 @@ export function buildIntegrationsRepository(): IntegrationsRepository {
   return new InMemoryIntegrationsRepository();
 }
 
+/**
+ * Session persistence switch (ADR-024 fase 2) — aturan yang sama dengan ledger/integrations:
+ * DATABASE_URL ada -> PrismaSessionStore (tabel auth_sessions, HASH saja), selain itu `null`
+ * sehingga SessionService tetap murni in-memory (perilaku fase 1 & seluruh unit test identik).
+ */
+export function buildSessionStore(): SessionStore | null {
+  if (process.env.DATABASE_URL) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const db = require('@saku/database');
+      return new db.PrismaSessionStore(process.env.DATABASE_URL);
+    } catch (err) {
+      Logger.warn(
+        `DATABASE_URL is set but @saku/database PrismaSessionStore failed to load (${(err as Error).message}). Sessions stay in-memory (restart = logout).`,
+        'SessionBootstrap'
+      );
+    }
+  }
+  return null;
+}
+
 @Module({
   // Timers exist only to serve the MT5 connector; every tick self-disables unless
   // MT5_CLOUD_ENABLED=true, so CI and offline dev make zero outbound calls.
@@ -107,6 +129,10 @@ export function buildIntegrationsRepository(): IntegrationsRepository {
   providers: [
     AuthService,
     SessionService,
+    {
+      provide: SESSION_STORE,
+      useFactory: buildSessionStore,
+    },
     { provide: APP_GUARD, useClass: OwnerGuard },
     AccountsService,
     TradingService,

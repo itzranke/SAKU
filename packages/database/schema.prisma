@@ -182,3 +182,17 @@ model Trade {
   @@unique([accountId, ticketId])
   @@map("trades")
 }
+
+/// ADR-024 fase 2 — sesi auth persisten. Menyimpan HANYA SHA-256(token) hex; token mentah
+/// tidak pernah masuk DB, tidak pernah di-log, dan tidak dapat direkonstruksi dari baris ini.
+/// Sesi kadaluarsa dibuang lazily saat lookup + sapuan oportunistik saat penerbitan sesi baru.
+model AuthSession {
+  tokenHash String   @id
+  ownerId   String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+  @@index([ownerId])
+  @@map("auth_sessions")
+}
