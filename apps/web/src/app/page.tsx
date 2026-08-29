@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import TransactionModal from './components/TransactionModal';
 import { StatementImportModal } from './components/StatementImportModal';
+import { SonziHealthCard } from './components/SonziHealthCard';
 
 export default function SakuDashboard() {
   const [baseCurrency, setBaseCurrency] = useState<'IDR' | 'USD'>('IDR');
@@ -214,6 +215,9 @@ export default function SakuDashboard() {
             </div>
           </motion.div>
         </div>
+
+        {/* SONZI Framework & Financial Health Card */}
+        <SonziHealthCard />
 
         {/* Account Breakdown & Recent Transactions Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

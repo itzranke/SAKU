@@ -9,6 +9,8 @@ import { BotController } from './modules/bot/bot.controller';
 import { BotService } from './modules/bot/bot.service';
 import { StagingController } from './modules/staging/staging.controller';
 import { StagingService } from './modules/staging/staging.service';
+import { SonziController } from './modules/sonzi/sonzi.controller';
+import { SonziService } from './modules/sonzi/sonzi.service';
 
 @Module({
   imports: [],
@@ -18,6 +20,7 @@ import { StagingService } from './modules/staging/staging.service';
     TradingController,
     BotController,
     StagingController,
+    SonziController,
   ],
   providers: [
     AuthService,
@@ -25,6 +28,7 @@ import { StagingService } from './modules/staging/staging.service';
     TradingService,
     BotService,
     StagingService,
+    SonziService,
   ],
 })
 export class AppModule {}
