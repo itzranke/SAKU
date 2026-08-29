@@ -84,6 +84,30 @@ export function toPublicIntegration(row: IntegrationRow): PublicIntegration {
   };
 }
 
+/**
+ * Display-only snapshot cache (ADR-022 M3). Written by the scheduler, read by
+ * GET /trading/account-state. Deliberately NOT a ledger source: no code path may post a
+ * balance from here — saldo hanya boleh lahir dari jurnal berimbang.
+ */
+export interface AccountStateRow {
+  integrationAccountId: string;
+  equity: number;
+  balance: number;
+  margin: number | null;
+  currency: string;
+  serverTime: string | null;
+  updatedAt: string;
+}
+
+export interface AccountStateInput {
+  integrationAccountId: string;
+  equity: number;
+  balance: number;
+  margin?: number | null;
+  currency: string;
+  serverTime?: string | null;
+}
+
 export interface IntegrationsRepository {
   readonly persistence: 'postgres' | 'memory';
   list(ownerId?: string): Promise<IntegrationRow[]>;
@@ -92,4 +116,6 @@ export interface IntegrationsRepository {
   create(input: NewIntegrationInput): Promise<IntegrationRow>;
   update(id: string, patch: IntegrationPatch): Promise<IntegrationRow | null>;
   remove(id: string): Promise<boolean>;
+  upsertAccountState?(input: AccountStateInput): Promise<AccountStateRow>;
+  listAccountState?(): Promise<AccountStateRow[]>;
 }

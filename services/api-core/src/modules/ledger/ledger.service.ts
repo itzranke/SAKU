@@ -196,8 +196,10 @@ export class LedgerService {
       return { kind: 'skipped', ticket: input.ticket, reason: 'zero-profit deal produces no journal' };
     }
     const dealSource: DealSource = input.source ?? 'MT5_SYNC';
-    // EA_LEGACY is recorded as MT5_SYNC until the ledger enum gains that variant (M3, ADR-022).
-    const journalSource: SourceType = dealSource === 'STATEMENT' ? 'STATEMENT_IMPORT' : 'MT5_SYNC';
+    // Provenance is preserved in the immutable journal: cloud sync, statement reconciliation
+    // and the deprecated push bridge each get their own SourceType (ADR-022 M3).
+    const journalSource: SourceType =
+      dealSource === 'STATEMENT' ? 'STATEMENT_IMPORT' : dealSource === 'EA_LEGACY' ? 'EA_LEGACY' : 'MT5_SYNC';
 
     const accounts = await this.repo.listAccounts();
     let draft;

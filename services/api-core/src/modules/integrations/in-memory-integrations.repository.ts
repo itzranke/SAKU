@@ -6,6 +6,8 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import {
+  AccountStateInput,
+  AccountStateRow,
   IntegrationPatch,
   IntegrationRow,
   IntegrationsRepository,
@@ -16,6 +18,7 @@ import {
 export class InMemoryIntegrationsRepository implements IntegrationsRepository {
   readonly persistence = 'memory' as const;
   private readonly rows = new Map<string, IntegrationRow>();
+  private readonly states = new Map<string, AccountStateRow>();
 
   list(ownerId?: string): Promise<IntegrationRow[]> {
     const all = [...this.rows.values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
@@ -75,7 +78,27 @@ export class InMemoryIntegrationsRepository implements IntegrationsRepository {
   }
 
   remove(id: string): Promise<boolean> {
+    this.states.delete(id);
     return Promise.resolve(this.rows.delete(id));
+  }
+
+  /** Display-only snapshot cache (never a ledger source). */
+  upsertAccountState(input: AccountStateInput): Promise<AccountStateRow> {
+    const row: AccountStateRow = {
+      integrationAccountId: input.integrationAccountId,
+      equity: input.equity,
+      balance: input.balance,
+      margin: input.margin ?? null,
+      currency: input.currency,
+      serverTime: input.serverTime ?? null,
+      updatedAt: new Date().toISOString(),
+    };
+    this.states.set(row.integrationAccountId, row);
+    return Promise.resolve({ ...row });
+  }
+
+  listAccountState(): Promise<AccountStateRow[]> {
+    return Promise.resolve([...this.states.values()].map((s) => ({ ...s })));
   }
 
   private clashes(ownerId: string, type: string, login: string): boolean {

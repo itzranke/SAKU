@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
+import { SyncSchedulerService } from './modules/trading/sync-scheduler.service';
 import { AuthController } from './modules/auth/auth.controller';
 import { AuthService } from './modules/auth/auth.service';
 import { AccountsController } from './modules/accounts/accounts.controller';
@@ -80,7 +82,9 @@ export function buildIntegrationsRepository(): IntegrationsRepository {
 }
 
 @Module({
-  imports: [],
+  // Timers exist only to serve the MT5 connector; every tick self-disables unless
+  // MT5_CLOUD_ENABLED=true, so CI and offline dev make zero outbound calls.
+  imports: [ScheduleModule.forRoot()],
   controllers: [
     AuthController,
     AccountsController,
@@ -110,6 +114,7 @@ export function buildIntegrationsRepository(): IntegrationsRepository {
     LedgerService,
     CryptoService,
     IntegrationsService,
+    SyncSchedulerService,
     {
       provide: LEDGER_REPOSITORY,
       useFactory: buildLedgerRepository,

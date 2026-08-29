@@ -85,7 +85,9 @@ export type SourceType =
   | 'STATEMENT_IMPORT'
   | 'MT5_SYNC'
   | 'BOT_CAPTURE'
-  | 'RECONCILIATION';
+  | 'RECONCILIATION'
+  /** Deprecated push bridge (SakuBridge.mq5). Audit provenance only (ADR-022). */
+  | 'EA_LEGACY';
 
 export type TransactionType = 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'TRADING_PROFIT';
 

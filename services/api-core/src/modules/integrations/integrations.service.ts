@@ -65,6 +65,31 @@ export class IntegrationsService {
     return toPublicIntegration(await this.mustFind(id));
   }
 
+  /**
+   * INTERNAL (scheduler/M3 only): full rows including the sealed credential. Never reachable
+   * from a controller — the HTTP surface only ever sees `toPublicIntegration()`.
+   */
+  listRows(ownerId?: string): Promise<IntegrationRow[]> {
+    return this.repo.list(ownerId);
+  }
+
+  async rowById(id: string): Promise<IntegrationRow> {
+    return this.mustFind(id);
+  }
+
+  /** Persist a fresh display snapshot (never writes a journal — see ADR-022). */
+  cacheAccountState(input: {
+    integrationAccountId: string;
+    equity: number;
+    balance: number;
+    margin?: number | null;
+    currency: string;
+    serverTime?: string | null;
+  }): Promise<unknown> {
+    if (!this.repo.upsertAccountState) return Promise.resolve(null);
+    return this.repo.upsertAccountState(input);
+  }
+
   async create(body: CreateIntegrationBody): Promise<{ integration: PublicIntegration; notice: string }> {
     const fields = validateIntegrationFields(body);
     const credential = applyCredentialPolicy(body, 'create');

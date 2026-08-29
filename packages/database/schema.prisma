@@ -25,6 +25,8 @@ enum SourceType {
   MT5_SYNC
   BOT_CAPTURE
   RECONCILIATION
+  /// Deprecated push bridge (SakuBridge.mq5) — kept for audit separation (ADR-022 M3).
+  EA_LEGACY
 }
 
 /// Where a closed-deal row was ingested from. Drives idempotency bookkeeping
@@ -141,6 +143,23 @@ model IntegrationAccount {
   @@unique([ownerId, type, login])
   @@index([ownerId, enabled])
   @@map("integration_accounts")
+}
+
+/// DISPLAY-ONLY snapshot cache written by the MT5 scheduler (ADR-022 M3).
+/// This is NOT a ledger source: SAKU never reads a saldo from here, and no API route
+/// accepts a balance write. It exists so the Net Worth / health cards can render fresh
+/// equity without hitting the vendor on every page load.
+model AccountStateCache {
+  id                   String   @id @default(uuid())
+  integrationAccountId String   @unique
+  equity               Decimal  @db.Decimal(20, 4)
+  balance              Decimal  @db.Decimal(20, 4)
+  margin               Decimal? @db.Decimal(20, 4)
+  currency             String   @default("USD")
+  serverTime           DateTime?
+  updatedAt            DateTime @updatedAt
+
+  @@map("account_state_cache")
 }
 
 model Trade {
