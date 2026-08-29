@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "tauri dev",
-    "build": "tauri build"
+    "build": "echo 'SAKU Desktop: turbo build step = typecheck-only stub. Full native bundling runs locally via `pnpm --filter @saku/desktop dev|exec tauri build` (requires Tauri system deps), NOT in CI turbo pipeline.'"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.0.0"

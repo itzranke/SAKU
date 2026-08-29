@@ -27,3 +27,7 @@ pnpm-debug.log*
 .vscode/
 .idea/
 .DS_Store
+
+# Turborepo caches & TS incremental artifacts
+.turbo/
+tsconfig.tsbuildinfo
