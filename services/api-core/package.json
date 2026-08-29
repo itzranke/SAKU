@@ -3,12 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "nest start --watch",
+    "dev": "pnpm --filter @saku/ledger-core build && nest start --watch",
     "build": "nest build",
     "start": "node dist/main"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",
+    "@saku/ledger-core": "workspace:*",
     "@nestjs/core": "^10.3.0",
     "@nestjs/platform-express": "^10.3.0",
     "reflect-metadata": "^0.2.0",
