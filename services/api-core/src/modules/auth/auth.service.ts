@@ -1,8 +1,11 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
+import { LOCAL_OWNER, SessionService } from './session.service';
 
 @Injectable()
 export class AuthService {
   private otpStore = new Map<string, { code: string; count: number; lastRequestedAt: number }>();
+
+  constructor(private readonly sessions: SessionService) {}
 
   requestOtp(identifier: string) {
     const now = Date.now();
@@ -51,10 +54,19 @@ export class AuthService {
     // Clear OTP after successful verification
     this.otpStore.delete(identifier);
 
+    // ADR-023 fase 1: terbitkan SESI NYATA (server-side, TTL default 7 hari).
+    // Nama field KAWAT sengaja `sakuSession` (bukan `sessionToken`) — RedactionInterceptor
+    // menghapus field yang mengandung `token` (SENSITIVE_EXACT), dan itu perilaku yang benar;
+    // token yang boleh keluar proses harus punya nama yang tidak menabrak jaring redaksi.
+    // `accessToken` mock lama tetap dikirim demi kontrak (juga tak pernah lolos redaksi).
+    const session = this.sessions.issue(LOCAL_OWNER);
     return {
       message: 'Autentikasi berhasil',
       accessToken: `saku_jwt_mock_token_${identifier}_${Date.now()}`,
       workspaceId: 'default-workspace-id',
+      sakuSession: session.token,
+      sakuSessionExpiresAt: session.expiresAt.toISOString(),
+      ownerId: LOCAL_OWNER,
     };
   }
 }

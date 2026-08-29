@@ -1,6 +1,6 @@
 # ADR-023: Auth Session & Kepemilikan Data (`ownerId`)
 
-> Status: **PROPOSED** → naik ke **IMPLEMENTED** saat PR implementasinya merge.
+> Status: **IMPLEMENTED** (fase 1; PR implementasi merge bersama dokumen ini).
 > Prasyarat sejarah: ADR-022 (MT5 sync tanpa-EA) IMPLEMENTED; fase sekarang = **single-user**.
 > Aturan yang tidak boleh dilanggar desain ini: tanpa endpoint tulis saldo; tidak ada respons
 > yang membawa materi rahasia; fallback in-memory tetap; kontrak lama utuh.
@@ -67,3 +67,21 @@
   sesi → 401 ramah.
 - Standar penuh: `tsc --noEmit`, test, build, repro M2 (201/400/201 `ok:false`), kontrak lama
   (`/ledger/snapshot`, `/trading/sync` dialek bridge, flag off provider null) tak berubah.
+
+## 5) Amandemen implementasi (saat kode merge — catatan historis dipertahankan)
+
+1. **Nama field kawat = `sakuSession` / `sakuSessionExpiresAt`, BUKAN `sessionToken`.**
+   Alasan: `RedactionInterceptor` menghapus nama field yang mengandung `token`
+   (`sessiontoken` ada di `SENSITIVE_EXACT`) — dan itu memang perilaku yang benar. Temuan
+   menarik yang membuktikannya: mock `accessToken` lama juga **tidak pernah** benar-benar sampai
+   ke klien sejak M2 (dipotong jaring redaksi) — jadi kontrak HTTP untuk field itu tidak pernah
+   ada secara efektif. Token yang memang diperuntukkan keluar proses diberi nama bebas-needle,
+   sedangkan jaring redaksi tidak dilemahkan sama sekali.
+2. Implementasi: `modules/auth/session.service.ts` (Map hash in-memory, TTL
+   `SAKU_SESSION_TTL_SEC`, min 60 dtk), `modules/auth/owner.guard.ts` (`APP_GUARD` global,
+   metadata `@OwnerScoped()`), `IntegrationsController` ber-`@OwnerScoped()`,
+   `IntegrationsService.create(body, ownerId = LOCAL_OWNER)`.
+3. Verifikasi lulus saat merge: vitest **99/99** (15 baru: sesi, guard, auth, kepemilikan
+   integrations — termasuk uji dua arah redaksi `sakuSession` ✓ / `sessionToken` ✗); smoke
+   HTTP penuh termasuk instance `SAKU_AUTH_ENFORCE=true` (401 tanpa sesi di route scoped,
+   200 dengan sesi; route non-scoped tetap terbuka) dan **0 kemunculan token mentah di log**.

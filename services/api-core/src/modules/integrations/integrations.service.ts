@@ -24,6 +24,7 @@ import {
 import { applyCredentialPolicy, validateIntegrationFields } from './credential-policy';
 import { Mt5Provider, ProviderAccount, ProviderTestResult, UNSUPPORTED_SERVER_MESSAGE } from './providers/mt5-provider';
 import { MT5_PROVIDER } from './providers/provider.factory';
+import { LOCAL_OWNER } from '../auth/session.service';
 
 export const ROTATION_NOTICE =
   'Setelah menghubungkan/meputuskan akses, ganti investor password di terminal atau di situs broker: SAKU menyimpannya terenkripsi tetapi tidak menegakkan rotasi.';
@@ -90,14 +91,22 @@ export class IntegrationsService {
     return this.repo.upsertAccountState(input);
   }
 
-  async create(body: CreateIntegrationBody): Promise<{ integration: PublicIntegration; notice: string }> {
+  /**
+   * `ownerId` SELALU dari server (OwnerGuard/ADR-023) — `body.ownerId` dari klien diabaikan.
+   * Parameter ini diisi controller dari `req.ownerId`; pemanggil lama (tes/unit) tanpa argumen
+   * otomatis memakai `LOCAL_OWNER`, jadi perilaku lama utuh.
+   */
+  async create(
+    body: CreateIntegrationBody,
+    ownerId: string = LOCAL_OWNER
+  ): Promise<{ integration: PublicIntegration; notice: string }> {
     const fields = validateIntegrationFields(body);
     const credential = applyCredentialPolicy(body, 'create');
     const errors = [...fields.errors, ...credential.errors];
     if (errors.length) throw new BadRequestException(errors.join(' '));
 
     const type = (body.type ?? 'MT5_CLOUD').toUpperCase() as 'MT5_CLOUD' | 'MT5_STATEMENT';
-    const existing = await this.repo.findByLogin(body.ownerId ?? 'user-local', type, fields.value!.login);
+    const existing = await this.repo.findByLogin(ownerId, type, fields.value!.login);
     if (existing) {
       throw new BadRequestException(
         `Akun ${type} "${fields.value!.login}" sudah terdaftar (id ${existing.id}). Gunakan PATCH /integrations/${existing.id}.`
@@ -105,7 +114,7 @@ export class IntegrationsService {
     }
 
     const row = await this.repo.create({
-      ownerId: body.ownerId,
+      ownerId,
       type,
       label: fields.value!.label,
       login: fields.value!.login,
