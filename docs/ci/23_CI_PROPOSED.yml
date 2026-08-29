@@ -126,14 +126,21 @@ jobs:
       # M1 (ADR-022): dedupe closed-deal adalah TABEL persisten, bukan Set in-memory.
       # Payload sama 2x -> journalize sekali, skip saat replay; replay pasca-restart tetap skip.
       # ---------------------------------------------------------------------
-      - name: 'M1/M2 — apply migration SQL & verify schema on postgres:16'
+      # Loop SEMUA folder migrasi ber-timestamp (bukan hardcode): migrasi baru cukup
+      # ditambah di prisma/migrations/2*/ dan otomatis ter-apply + ter-verify di sini.
+      # Filter verify.sql memilih folder migrasi ber-probe; semua file migration.sql
+      # repo ini idempoten (IF NOT EXISTS / DO $$ EXCEPTION) jadi aman di-replay
+      # setelah `prisma db push`.
+      - name: 'M1/M2/M3 — apply migration SQL & verify schema on postgres:16'
         run: |
           set -euo pipefail
           cd packages/database
-          for dir in prisma/migrations/20260831000000_processed_deals prisma/migrations/20260831000001_integration_accounts; do
-            pnpm exec prisma db execute --file "$dir/migration.sql" --schema schema.prisma
-            pnpm exec prisma db execute --file "$dir/verify.sql" --schema schema.prisma
-            echo "✅ $dir berlaku di postgres:16 (tabel + constraint)"
+          for dir in $(ls -d prisma/migrations/2*/ | sort); do
+            if [ -f "$dir/verify.sql" ]; then
+              pnpm exec prisma db execute --file "${dir}migration.sql" --schema schema.prisma
+              pnpm exec prisma db execute --file "${dir}verify.sql" --schema schema.prisma
+              echo "✅ $dir berlaku di postgres:16 (tabel + constraint)"
+            fi
           done
 
       - name: 'M1 — /trading/sync idempotensi (duplikat di-skip, bertahan lintas restart)'
