@@ -35,6 +35,7 @@ UI, dan CI tidak bisa beda angka (dijaga `connectors.spec.ts`).
 
 | Route | Perilaku |
 |---|---|
+| `GET /api/v1/connectors` | Registry Connector M6, read-only: `type/label/status/direction/syncIntervalSec/credentialRef/normalizer`. `credentialRef` = kebijakan penyimpanan (kind/field/mode/algorithm) — **bukan** materi rahasia; tidak ada endpoint tulis (registry = kode) |
 | `GET /api/v1/integrations` · `GET /:id` | Daftar koneksi; **tidak pernah** mengembalikan `credentialCipher`/password. Field publik: `hasCredential`, `credentialMode: investor-read-only`, `credentialAlgorithm: AES-256-GCM` |
 | `POST /api/v1/integrations` | `label, login, server, port?, investor_password` → 400 bila `master_password`/`trader_password`/`credentialCipher` kiriman klien; copy error selalu menyebut "investor password (read-only)" |
 | `PATCH /api/v1/integrations/:id` | Rotasi kredensial (`investor_password` baru), toggle `enabled`, ubah label/server/port |

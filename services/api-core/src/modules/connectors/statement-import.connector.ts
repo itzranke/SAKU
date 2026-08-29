@@ -20,6 +20,9 @@ export class StatementImportConnector implements Connector {
   readonly syncIntervalSec = 0;
   readonly credentialRef = { kind: 'none' } as const;
 
+  readonly normalizer =
+    'normalizeMt5SyncPayload → NormalizedClosedDeal[] (baris berkolom deal; baris lain tetap jalur staging)';
+
   describe() {
     return {
       type: this.type,
@@ -28,6 +31,7 @@ export class StatementImportConnector implements Connector {
       direction: this.direction,
       syncIntervalSec: this.syncIntervalSec,
       credentialRef: this.credentialRef,
+      normalizer: this.normalizer,
     };
   }
 

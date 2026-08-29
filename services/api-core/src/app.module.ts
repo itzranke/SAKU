@@ -29,6 +29,7 @@ import { LedgerService } from './modules/ledger/ledger.service';
 import { InMemoryLedgerRepository } from './modules/ledger/in-memory-ledger.repository';
 import { LEDGER_REPOSITORY, LedgerRepository } from './modules/ledger/ledger.repository';
 import { IntegrationsController } from './modules/integrations/integrations.controller';
+import { ConnectorsController } from './modules/connectors/connectors.controller';
 import { IntegrationsService } from './modules/integrations/integrations.service';
 import { InMemoryIntegrationsRepository } from './modules/integrations/in-memory-integrations.repository';
 import {
@@ -98,6 +99,7 @@ export function buildIntegrationsRepository(): IntegrationsRepository {
     ObsidianController,
     LedgerController,
     IntegrationsController,
+    ConnectorsController,
   ],
   providers: [
     AuthService,
