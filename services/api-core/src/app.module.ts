@@ -7,6 +7,7 @@ import { TradingController } from './modules/trading/trading.controller';
 import { TradingService } from './modules/trading/trading.service';
 import { BotController } from './modules/bot/bot.controller';
 import { BotService } from './modules/bot/bot.service';
+import { TelegramConfigService } from './modules/bot/telegram-config.service';
 import { StagingController } from './modules/staging/staging.controller';
 import { StagingService } from './modules/staging/staging.service';
 import { SonziController } from './modules/sonzi/sonzi.controller';
@@ -36,6 +37,7 @@ import { B2bService } from './modules/b2b/b2b.service';
     AccountsService,
     TradingService,
     BotService,
+    TelegramConfigService,
     StagingService,
     SonziService,
     SecurityService,
