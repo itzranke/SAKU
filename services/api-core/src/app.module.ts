@@ -18,11 +18,35 @@ import { PaymentController } from './modules/payment/payment.controller';
 import { PaymentService } from './modules/payment/payment.service';
 import { B2bController } from './modules/b2b/b2b.controller';
 import { B2bService } from './modules/b2b/b2b.service';
-<<<<<<< HEAD
-=======
 import { ObsidianController } from './modules/obsidian/obsidian.controller';
 import { ObsidianService } from './modules/obsidian/obsidian.service';
->>>>>>> 8e7a0dd (feat(skills): integrate caveman, rtk (redux toolkit), graphify, obsidian journal, and ponytail automation skills)
+import { Logger } from '@nestjs/common';
+import { LedgerController } from './modules/ledger/ledger.controller';
+import { LedgerService } from './modules/ledger/ledger.service';
+import { InMemoryLedgerRepository } from './modules/ledger/in-memory-ledger.repository';
+import { LEDGER_REPOSITORY, LedgerRepository } from './modules/ledger/ledger.repository';
+
+/**
+ * Ledger persistence switch (Tahap 4 wiring):
+ *   DATABASE_URL set   -> PrismaLedgerRepository (@saku/database, PostgreSQL/TimescaleDB)
+ *   DATABASE_URL unset -> InMemoryLedgerRepository (dev/demo, volatile)
+ * The @saku/database import is lazy & guarded so the API boots even without generated Prisma artifacts.
+ */
+export function buildLedgerRepository(): LedgerRepository | Promise<LedgerRepository> {
+  if (process.env.DATABASE_URL) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const db = require('@saku/database');
+      return new db.PrismaLedgerRepository(process.env.DATABASE_URL, 'default-workspace-id');
+    } catch (err) {
+      Logger.warn(
+        `DATABASE_URL is set but @saku/database PrismaLedgerRepository failed to load (${(err as Error).message}). Falling back to in-memory ledger.`,
+        'LedgerBootstrap'
+      );
+    }
+  }
+  return new InMemoryLedgerRepository();
+}
 
 @Module({
   imports: [],
@@ -36,10 +60,8 @@ import { ObsidianService } from './modules/obsidian/obsidian.service';
     SecurityController,
     PaymentController,
     B2bController,
-<<<<<<< HEAD
-=======
     ObsidianController,
->>>>>>> 8e7a0dd (feat(skills): integrate caveman, rtk (redux toolkit), graphify, obsidian journal, and ponytail automation skills)
+    LedgerController,
   ],
   providers: [
     AuthService,
@@ -52,10 +74,12 @@ import { ObsidianService } from './modules/obsidian/obsidian.service';
     SecurityService,
     PaymentService,
     B2bService,
-<<<<<<< HEAD
-=======
     ObsidianService,
->>>>>>> 8e7a0dd (feat(skills): integrate caveman, rtk (redux toolkit), graphify, obsidian journal, and ponytail automation skills)
+    LedgerService,
+    {
+      provide: LEDGER_REPOSITORY,
+      useFactory: buildLedgerRepository,
+    },
   ],
 })
 export class AppModule {}

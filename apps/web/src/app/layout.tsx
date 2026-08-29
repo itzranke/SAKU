@@ -1,5 +1,6 @@
 import './globals.css';
 import type { Metadata } from 'next';
+import SakuProviders from './Providers';
 
 export const metadata: Metadata = {
   title: 'SAKU — Personal Financial Operating System',
@@ -14,7 +15,7 @@ export default function RootLayout({
   return (
     <html lang="id">
       <body className="min-h-screen bg-[#090D16] text-slate-100 antialiased">
-        {children}
+        <SakuProviders>{children}</SakuProviders>
       </body>
     </html>
   );

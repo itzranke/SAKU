@@ -89,12 +89,16 @@ pnpm --filter @saku/ledger-core test
 
 ### 3. Start Development Environment
 ```bash
-# Start Web App (Port 3000)
+# Start Web App (Port 3000). /api/proxy/* is rewritten server-side to the API below.
 pnpm --filter @saku/web dev
 
-# Start API Core (Port 4000)
+# Start API Core (Port 4000) — builds the ledger engine first, serves the immutable journal API.
 pnpm --filter @saku/api-core dev
 ```
+
+The dashboard reads live snapshots from the double-entry engine (in-memory seeded journals by default).
+For persistence + MT5 wiring see `docs/21_LEDGER_WIRING_AND_PERSISTENCE_RUNBOOK.md`:
+`docker compose up -d` → `pnpm --filter @saku/database db:push && db:seed` → start the API with `DATABASE_URL` set.
 
 ---
 

@@ -1,18 +1,17 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { useSakuDispatch, useSakuSelector } from './store/hooks';
+import { fetchSnapshot, postTransaction, toApiTransaction } from './store/ledgerSlice';
 import TransactionModal from './components/TransactionModal';
 import { StatementImportModal } from './components/StatementImportModal';
 import { SonziHealthCard } from './components/SonziHealthCard';
 import { SubscriptionModal } from './components/SubscriptionModal';
 import { CommandPalette } from './components/CommandPalette';
 import { ToastProvider, useToast } from './components/ToastProvider';
-<<<<<<< HEAD
-=======
 import { GraphifyWealthChart } from './components/GraphifyWealthChart';
 import { ObsidianJournalModal } from './components/ObsidianJournalModal';
->>>>>>> 8e7a0dd (feat(skills): integrate caveman, rtk (redux toolkit), graphify, obsidian journal, and ponytail automation skills)
 
 function DashboardContent() {
   const [baseCurrency, setBaseCurrency] = useState<'IDR' | 'USD'>('IDR');
@@ -20,62 +19,52 @@ function DashboardContent() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
-<<<<<<< HEAD
-=======
   const [isObsidianModalOpen, setIsObsidianModalOpen] = useState(false);
->>>>>>> 8e7a0dd (feat(skills): integrate caveman, rtk (redux toolkit), graphify, obsidian journal, and ponytail automation skills)
 
   const { showToast } = useToast();
+  const dispatch = useSakuDispatch();
 
-  // Sample Aggregated State
-  const [netWorthIDR, setNetWorthIDR] = useState(1450230000);
-  const [totalAssetsIDR, setTotalAssetsIDR] = useState(1600000000);
-  const totalDebtsIDR = 149770000;
+  // Live projection of the immutable double-entry ledger (@saku/ledger-core via @saku/api-core).
+  // While offline, the store keeps its seeded sample state so the layout never collapses.
+  const { netWorthIDR, totalAssetsIDR, totalDebtsIDR, liquidityCashIDR, journalCount, accounts, transactions, source: dataSource, error: storeError, lastSyncAt } =
+    useSakuSelector((s) => s.ledger);
+  const [isPosting, setIsPosting] = useState(false);
 
-  const [accounts, setAccounts] = useState([
-    { id: '1', name: 'Bank BCA', type: 'BANK', balance: 185000000, currency: 'IDR' },
-    { id: '2', name: 'Bank Mandiri', type: 'BANK', balance: 60000000, currency: 'IDR' },
-    { id: '3', name: 'GoPay / OVO', type: 'EWALLET', balance: 12500000, currency: 'IDR' },
-    { id: '4', name: 'Physical Cash', type: 'CASH', balance: 3000000, currency: 'IDR' },
-    { id: '5', name: 'IDX Equities', type: 'INVESTMENT', balance: 450000000, currency: 'IDR' },
-    { id: '6', name: 'MetaTrader 5 Forex', type: 'TRADING', balance: 25400, currency: 'USD', eqIDR: 393700000 },
-  ]);
+  useEffect(() => {
+    dispatch(fetchSnapshot());
+  }, [dispatch]);
 
-  const [recentTransactions, setRecentTransactions] = useState([
-    { id: 't1', date: '2026-08-28', description: 'Gaji Bulanan', account: 'Bank BCA', amount: 35000000, type: 'INCOME' },
-    { id: 't2', date: '2026-08-28', description: 'Transfer ke MT5 Broker', account: 'Bank Mandiri', amount: -15500000, type: 'TRANSFER' },
-    { id: 't3', date: '2026-08-27', description: 'Pembayaran Tagihan Listrik', account: 'GoPay / OVO', amount: -1250000, type: 'EXPENSE' },
-    { id: 't4', date: '2026-08-26', description: 'Profit Trade EURUSD (MT5)', account: 'MetaTrader 5', amount: 480, type: 'TRADING_PROFIT', currency: 'USD' },
-  ]);
-
-  const handleAddTransaction = (newTx: any) => {
-    setRecentTransactions((prev) => [newTx, ...prev]);
-
-    setAccounts((prev) =>
-      prev.map((acc) => {
-        if (acc.name === newTx.account) {
-          return { ...acc, balance: acc.balance + newTx.amount };
-        }
-        return acc;
-      })
-    );
-
-    setNetWorthIDR((prev) => prev + newTx.amount);
-    setTotalAssetsIDR((prev) => prev + newTx.amount);
-    showToast(`Transaksi "${newTx.description}" berhasil dicatat ke Ledger!`, 'success');
+  const handleAddTransaction = async (newTx: any) => {
+    if (isPosting) return;
+    setIsPosting(true);
+    try {
+      await dispatch(postTransaction(toApiTransaction(newTx))).unwrap();
+      showToast(`Jurnal "${newTx.description}" diposting — saldo diturunkan dari double-entry ledger.`, 'success');
+    } catch (err: any) {
+      showToast(err?.message || 'Jurnal ditolak validator ledger (tidak balance?).', 'warning');
+    } finally {
+      setIsPosting(false);
+    }
   };
 
-  const handlePostStagingToLedger = (count: number, totalSum: number) => {
-    const newTx = {
-      id: `stg-posted-${Date.now()}`,
-      date: '2026-08-29',
-      description: `Batch Import Mutasi BCA (${count} item)`,
-      account: 'Bank BCA',
-      amount: -totalSum,
-      type: 'EXPENSE',
-    };
-    handleAddTransaction(newTx);
-    showToast(`Batch Import (${count} mutasi) disetujui & diposting ke Double-Entry Ledger!`, 'success');
+  const handlePostStagingToLedger = async (count: number, totalSum: number) => {
+    try {
+      await dispatch(
+        postTransaction(
+          toApiTransaction({
+            amount: totalSum,
+            type: 'EXPENSE',
+            description: `Batch Import Mutasi BCA (${count} item)`,
+            account: 'Bank BCA',
+            category: 'Import Mutasi',
+            source: 'STATEMENT_IMPORT',
+          })
+        )
+      ).unwrap();
+      showToast(`Batch Import (${count} mutasi) disetujui & diposting sebagai 1 jurnal Double-Entry!`, 'success');
+    } catch (err: any) {
+      showToast(err?.message || 'Batch staging gagal diposting ke ledger.', 'warning');
+    }
   };
 
   const handleCommandPaletteAction = (actionId: string) => {
@@ -238,7 +227,7 @@ function DashboardContent() {
               {formatCurrency(baseCurrency === 'IDR' ? totalAssetsIDR : totalAssetsIDR / 15500, baseCurrency)}
             </h3>
             <div className="mt-4 text-xs text-slate-400">
-              Kas Cair: <span className="font-semibold text-white">Rp 260.500.000</span>
+              Kas Cair: <span className="font-semibold text-white">{formatCurrency(liquidityCashIDR)}</span>
             </div>
           </motion.div>
 
@@ -269,14 +258,24 @@ function DashboardContent() {
           {/* Accounts List */}
           <div className="lg:col-span-1 bg-[#111827] border border-slate-800 rounded-2xl p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <h4 className="font-bold text-white text-base">Daftar Akun & Saldo</h4>
+              <h4 className="font-bold text-white text-base">
+                Daftar Akun & Saldo{' '}
+                <span className="ml-1 align-middle text-[10px] font-semibold text-slate-500">
+                  · {journalCount} jurnal
+                </span>
+              </h4>
               <button className="text-xs text-indigo-400 hover:underline">Kelola</button>
             </div>
 
             <div className="space-y-3">
-              {accounts.map((acc, idx) => (
+              {accounts
+                .filter((acc) => ['BANK', 'EWALLET', 'CASH', 'INVESTMENT', 'TRADING', 'CREDIT_CARD'].includes(acc.type))
+                .map((acc, idx) => (
                 <motion.div
-                  key={acc.id}
+                  key={acc.code}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ type: 'spring', damping: 25, stiffness: 350, delay: idx * 0.04 }}
                   whileHover={{ scale: 1.01, x: 2 }}
                   className="flex items-center justify-between p-3 rounded-xl bg-slate-900/50 border border-slate-800/80 hover:border-slate-700 transition-all"
                 >
@@ -285,8 +284,10 @@ function DashboardContent() {
                     <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">{acc.type}</span>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-sm text-slate-100">{formatCurrency(acc.balance, acc.currency)}</p>
-                    {acc.eqIDR && <p className="text-[11px] text-slate-500">≈ {formatCurrency(acc.eqIDR, 'IDR')}</p>}
+                    <p className="font-semibold text-sm text-slate-100">{formatCurrency(acc.balanceNative, acc.currency)}</p>
+                    {acc.currency !== 'IDR' && Math.abs(acc.balanceBaseIDR) > 0 && (
+                      <p className="text-[11px] text-slate-500">≈ {formatCurrency(Math.round(acc.balanceBaseIDR), 'IDR')}</p>
+                    )}
                   </div>
                 </motion.div>
               ))}
@@ -297,7 +298,23 @@ function DashboardContent() {
           <div className="lg:col-span-2 bg-[#111827] border border-slate-800 rounded-2xl p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h4 className="font-bold text-white text-base">Jurnal Transaksi Terbaru</h4>
-              <button className="text-xs text-indigo-400 hover:underline">Lihat Semua</button>
+              <div className="flex items-center gap-2.5">
+                <motion.span
+                  key={dataSource}
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+                  className={`text-[10px] font-semibold px-2 py-1 rounded-full border ${
+                    dataSource === 'live'
+                      ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                      : 'text-amber-400 bg-amber-500/10 border-amber-500/20'
+                  }`}
+                  title={dataSource === 'live' ? `Snapshot API ${lastSyncAt ?? ''}` : storeError ?? 'Data contoh lokal'}
+                >
+                  {dataSource === 'live' ? '● LIVE LEDGER' : '◎ DATA CONTOH (API OFFLINE)'}
+                </motion.span>
+                <button className="text-xs text-indigo-400 hover:underline">Lihat Semua</button>
+              </div>
             </div>
 
             <div className="overflow-x-auto">
@@ -311,10 +328,13 @@ function DashboardContent() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/50">
-                  {recentTransactions.map((tx) => (
+                  {transactions.map((tx) => (
                     <tr key={tx.id} className="hover:bg-slate-800/30 transition-all">
                       <td className="py-3 text-xs text-slate-400">{tx.date}</td>
-                      <td className="py-3 font-medium text-slate-200">{tx.description}</td>
+                      <td className="py-3 font-medium text-slate-200">
+                        {tx.description}
+                        <span className="ml-2 text-[9px] uppercase tracking-wider text-slate-600 border border-slate-800 rounded px-1 py-0.5">{tx.type}</span>
+                      </td>
                       <td className="py-3 text-xs text-slate-400">{tx.account}</td>
                       <td className={`py-3 text-right font-bold ${tx.amount > 0 ? 'text-emerald-400' : 'text-slate-200'}`}>
                         {tx.amount > 0 ? '+' : ''}{formatCurrency(tx.amount, tx.currency || 'IDR')}
@@ -332,6 +352,7 @@ function DashboardContent() {
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           onAddTransaction={handleAddTransaction}
+          accounts={accounts}
         />
 
         {/* Statement Import Staging Modal Component */}
@@ -353,8 +374,6 @@ function DashboardContent() {
           onClose={() => setIsCommandPaletteOpen(false)}
           onSelectAction={handleCommandPaletteAction}
         />
-<<<<<<< HEAD
-=======
 
         {/* Obsidian Markdown Vault Journal Modal */}
         <ObsidianJournalModal
@@ -362,7 +381,6 @@ function DashboardContent() {
           onClose={() => setIsObsidianModalOpen(false)}
           onSaveMarkdown={(note) => showToast('Jurnal Obsidian Vault (.md) berhasil diekspor!', 'success')}
         />
->>>>>>> 8e7a0dd (feat(skills): integrate caveman, rtk (redux toolkit), graphify, obsidian journal, and ponytail automation skills)
       </main>
     </div>
   );

@@ -2,15 +2,25 @@
   "name": "@saku/database",
   "version": "0.1.0",
   "private": true,
-  "main": "./index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
+    "build": "prisma generate && tsc -p tsconfig.json",
+    "typecheck": "prisma generate && tsc -p tsconfig.json --noEmit",
     "db:push": "prisma db push",
-    "db:generate": "prisma generate"
+    "db:generate": "prisma generate",
+    "db:seed": "prisma generate && tsx seed.ts"
+  },
+  "prisma": {
+    "seed": "tsx seed.ts"
   },
   "devDependencies": {
-    "prisma": "^5.22.0"
+    "prisma": "^5.22.0",
+    "tsx": "^4.16.0",
+    "typescript": "^5.4.0"
   },
   "dependencies": {
-    "@prisma/client": "^5.22.0"
+    "@prisma/client": "^5.22.0",
+    "@saku/ledger-core": "workspace:*"
   }
 }
