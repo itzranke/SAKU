@@ -1,6 +1,6 @@
 # ADR-022: Integrasi MT5 Tanpa EA — Investor-Password Server-Side Sync (Preseden Myfxbook)
 
-- Status: ACCEPTED (keputusan Product Owner, 31 Agustus 2026)
+- Status: **IMPLEMENTED** — dirilis di `v1.2.0` (M1–M6; PR #2, #3, #4, #5, #6). Diterima sebagai keputusan Product Owner pada 31 Agustus 2026.
 - Menggantikan: jalur "EA SakuBridge sebagai primer" (docs/21 runbook lama)
 - Keputusan ini meniadakan keharusan memasang EA bagi pengguna.
 
@@ -59,7 +59,8 @@ Jalur primer: server-side pull dengan investor password.
 - M1 — `processed_deals` persisten + transaction jurnal|dedupe + CI idempotensi: PR #2.
 - M2 — modul `integrations` + AES-256-GCM + redaksi global + kebijakan investor-only di API: PR #2 (ikut ter-merge bersama M1).
 - M3 — `Mt5Provider` (MetaApi/Mock/Null) + scheduler snapshot & deals + notice deprecated EA: PR #3.
-- M4 — deprecation EA + penyelarasan dokumen: PR #….
-- M5 — Settings > Integrations + badge sumber: PR #….
-- M6 — ConnectorRegistry generik + reposisi README: PR #….
+- M4 — deprecation EA (`services/deprecated/mt5-ea/`) + penyelarasan dokumen: PR #4.
+- M5 — Settings → Integrations (UI) + badge sumber di jurnal + kartu health: PR #5.
+- M6 — kontrak `Connector` generik + reposisi README: PR #6.
+- Release: tag `v1.2.0`.
 
