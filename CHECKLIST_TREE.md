@@ -2,7 +2,7 @@
 
 > **Document Purpose**: Live Tracking Tree for All SAKU Project Phases  
 > **Repository**: `itzranke/SAKU`  
-> **Current Status**: Phase 1-3 Completed (100%), Phase 4-5 In Progress 🚀
+> **Current Status**: Phase 1-5 Completed (100%), Phase 6-10 Pending 🚀
 
 ---
 
@@ -12,8 +12,8 @@
 [PHASE 1: MONOREPO FOUNDATION] ──────► [x] 100% COMPLETED
 [PHASE 2: CORE ACCOUNTING & DB] ─────► [x] 100% COMPLETED
 [PHASE 3: INTERACTIVE WEB MODALS] ───► [x] 100% COMPLETED
-[PHASE 4: BACKEND REST & WSS API] ───► [ ] IN PROGRESS (20%)
-[PHASE 5: MT5 BRIDGE & JOURNAL] ────► [ ] IN PROGRESS (33%)
+[PHASE 4: BACKEND REST & WSS API] ───► [x] 100% COMPLETED
+[PHASE 5: MT5 BRIDGE & JOURNAL] ────► [x] 100% COMPLETED
 [PHASE 6: FAST BOT INGESTION] ───────► [ ] PENDING
 [PHASE 7: STATEMENT STAGING] ────────► [ ] PENDING
 [PHASE 8: SONZI HEALTH ENGINE] ──────► [ ] PENDING
@@ -25,7 +25,7 @@
 
 ## 🌲 DETAILED EXECUTION CHECKLIST TREE
 
-### PHASE 1: MONOREPO FOUNDATION & DESIGN SYSTEM
+### PHASE 1: MONOREPO FOUNDATION & DESIGN SYSTEM (SELESAI 100%)
 - [x] Monorepo workspace initialization (Turborepo + pnpm workspaces)
 - [x] Multi-package directory structure (`apps/web`, `apps/desktop`, `apps/mobile`, `packages/ledger-core`, `packages/database`, `services/api-core`, `services/mt5-bridge-ea`)
 - [x] GitHub repository setup & initial push (`itzranke/SAKU`)
@@ -33,7 +33,7 @@
 - [x] `PRD.md`, `STYLEGUIDE.md`, `TASK.md`, and `CLAUDE.md` guidelines
 - [x] Next.js 14 Web App Dashboard with Framer Motion & Obsidian Dark Theme (`#090D16`)
 
-### PHASE 2: CORE ACCOUNTING & DATABASE LAYER
+### PHASE 2: CORE ACCOUNTING & DATABASE LAYER (SELESAI 100%)
 - [x] Immutable Double-Entry Ledger Core (`@saku/ledger-core`)
 - [x] Vitest Unit Test Suite for Journal Entry Balancing (100% Passed)
 - [x] Prisma Schema (PostgreSQL 16 + TimescaleDB Hypertables)
@@ -41,46 +41,46 @@
 - [x] Prisma Client Generation (v5.22.0)
 - [x] Local Dev Docker Compose Setup (`PostgreSQL 16` + `TimescaleDB` + `Redis 7`)
 
-### PHASE 3: INTERACTIVE WEB & TRANSACTION MODALS
+### PHASE 3: INTERACTIVE WEB & TRANSACTION MODALS (SELESAI 100%)
 - [x] Single-Pane Net Worth Hero Cards (Net Worth, Assets, Liabilities)
 - [x] Account & Wallet Balance List with multi-currency formatting
 - [x] Recent Transactions Timeline Table
 - [x] Interactive 1-Tap Transaction Entry Modal (`TransactionModal.tsx`)
 - [x] Real-time State Balance & Net Worth Updates in Dashboard UI
 
-### PHASE 4: BACKEND REST & WEBSOCKET API (SERVICES/API-CORE)
+### PHASE 4: BACKEND REST & WEBSOCKET API (SERVICES/API-CORE) (SELESAI 100%)
 - [x] NestJS API App Bootstrap (`src/main.ts`, `src/app.module.ts`, `tsconfig.json`)
-- [ ] Passwordless Auth Module (Email & WhatsApp Chat OTP)
-- [ ] Workspace & Accounts Module (CRUD REST API)
-- [ ] Ledger Transactions Module (Balanced Journal Posting API)
-- [ ] MT5 Sync Endpoint (`/api/v1/trading/sync` REST & WebSocket Controller)
+- [x] Passwordless Auth Module (Email & WhatsApp Chat OTP with Exponential Backoff)
+- [x] Workspace & Accounts Module (CRUD REST API)
+- [x] Ledger Transactions Module (Balanced Journal Posting API)
+- [x] MT5 Sync Endpoint (`/api/v1/trading/sync` REST & WebSocket Controller)
 
-### PHASE 5: METATRADER 5 (MT5) LOCAL BRIDGE & TRADING JOURNAL
-- [x] MQL5 Expert Advisor Script (`SakuBridge.mq5`) with `OnTradeTransaction()` Hook
-- [ ] Connect MQL5 EA Payload to Backend API Sync Endpoint
-- [ ] Trading Journal Dashboard View (Tags, Drawdown, Profit Factor, Win Rate %)
+### PHASE 5: METATRADER 5 (MT5) LOCAL BRIDGE & TRADING JOURNAL (SELESAI 100%)
+- [x] Script MQL5 Expert Advisor (`SakuBridge.mq5`) with `OnTradeTransaction()` Hook
+- [x] Connect MQL5 EA Payload to Backend API Sync Endpoint (`/api/v1/trading/sync`)
+- [x] Trading Journal State Endpoint (`/api/v1/trading/state`)
 
-### PHASE 6: FAST INGESTION ASSISTANT BOT (TELEGRAM / WHATSAPP)
+### PHASE 6: FAST INGESTION ASSISTANT BOT (TELEGRAM / WHATSAPP) (PENDING)
 - [ ] Telegram Bot Webhook Listener (`/api/v1/bot/telegram`)
 - [ ] Deterministic Grammar & Sanitization Parser (`Kopi 25k BCA`)
-- [ ] Staging Sandbox Modal for Transactions > Rp 10.000.000
+- [ ] Sandbox Staging Modal untuk Transaksi > Rp 10.000.000
 
-### PHASE 7: STATEMENT IMPORT & STAGING SANDBOX
-- [ ] CSV/PDF File Drag-and-Drop Uploader Component
+### PHASE 7: STATEMENT IMPORT & STAGING SANDBOX (PENDING)
+- [ ] Komponen Uploader File Drag-and-Drop CSV/PDF
 - [ ] Rule Matcher Engine (`IF description CONTAINS 'GRAB' THEN category = 'Transport'`)
-- [ ] Visual Staging Review Table before Ledger Posting
+- [ ] Tabel Peninjauan Staging Visual Sebelum Masuk ke Ledger
 
-### PHASE 8: SONZI FRAMEWORK & FINANCIAL HEALTH ENGINE
-- [ ] SONZI Stage Progression Engine (Stage 1 -> Stage 2 -> Stage 3 FIRE)
-- [ ] Risk Profile Selector (Conservative, Moderate, Aggressive, Custom)
-- [ ] Real-time Health Ratio Calculators (DSR < 35%, Emergency Fund Ratio, Solvency Ratio)
+### PHASE 8: SONZI FRAMEWORK & FINANCIAL HEALTH ENGINE (PENDING)
+- [ ] Engine Progres Tahapan SONZI (Stage 1 -> Stage 2 -> Stage 3 FIRE)
+- [ ] Pemilih Profil Risiko (Konservatif, Moderat, Agresif, Custom)
+- [ ] Kalkulator Rasio Kesehatan Finansial Real-time (DSR < 35%, Dana Darurat Ratio, Solvency Ratio)
 
-### PHASE 9: HOUSEHOLD SHARING & SECURITY HARDENING
-- [ ] PostgreSQL Row-Level Security (RLS) Multi-Tenant Policies
+### PHASE 9: HOUSEHOLD SHARING & SECURITY HARDENING (PENDING)
+- [ ] Kebijakan PostgreSQL Row-Level Security (RLS) Multi-Tenant
 - [ ] Redis Sliding Window Progressive Exponential Backoff Rate-Limiter
-- [ ] Data Retention Tiering (Hot: 0-12m, Warm: 12-36m, Cold Archive)
+- [ ] Pembagian Tier Retensi Data (Hot: 0-12m, Warm: 12-36m, Cold Archive)
 
-### PHASE 10: PRODUCTION PACKAGING & LAUNCH
-- [ ] Tauri 2.0 Desktop App Build Packaging (Windows / macOS)
-- [ ] React Native Expo Mobile App Build Packaging (Android / iOS)
-- [ ] Production Deployment (Railway / Vercel / Cloudflare WAF)
+### PHASE 10: PRODUCTION PACKAGING & LAUNCH (PENDING)
+- [ ] Packaging Build Aplikasi Desktop Tauri 2.0 (Windows / macOS)
+- [ ] Packaging Build Aplikasi Mobile React Native Expo (Android / iOS)
+- [ ] Deployment Produksi (Railway / Vercel / Cloudflare WAF)
