@@ -3,10 +3,12 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import TransactionModal from './components/TransactionModal';
+import { StatementImportModal } from './components/StatementImportModal';
 
 export default function SakuDashboard() {
   const [baseCurrency, setBaseCurrency] = useState<'IDR' | 'USD'>('IDR');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Sample Aggregated State
   const [netWorthIDR, setNetWorthIDR] = useState(1450230000);
@@ -45,6 +47,18 @@ export default function SakuDashboard() {
     // Update Net Worth and Total Assets
     setNetWorthIDR((prev) => prev + newTx.amount);
     setTotalAssetsIDR((prev) => prev + newTx.amount);
+  };
+
+  const handlePostStagingToLedger = (count: number, totalSum: number) => {
+    const newTx = {
+      id: `stg-posted-${Date.now()}`,
+      date: '2026-08-29',
+      description: `Batch Import Mutasi BCA (${count} item)`,
+      account: 'Bank BCA',
+      amount: -totalSum,
+      type: 'EXPENSE',
+    };
+    handleAddTransaction(newTx);
   };
 
   const formatCurrency = (val: number, curr = 'IDR') => {
@@ -130,6 +144,15 @@ export default function SakuDashboard() {
                 USD
               </button>
             </div>
+
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => setIsImportModalOpen(true)}
+              className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-sm font-semibold px-4 py-2.5 rounded-xl shadow-md flex items-center gap-2 transition"
+            >
+              <span>📥</span> Import Mutasi (CSV/PDF)
+            </motion.button>
 
             <motion.button
               whileHover={{ scale: 1.03 }}
@@ -255,11 +278,18 @@ export default function SakuDashboard() {
           </div>
         </div>
 
-        {/* Modal Component */}
+        {/* Transaction Modal Component */}
         <TransactionModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           onAddTransaction={handleAddTransaction}
+        />
+
+        {/* Statement Import Staging Modal Component */}
+        <StatementImportModal
+          isOpen={isImportModalOpen}
+          onClose={() => setIsImportModalOpen(false)}
+          onPostToLedger={handlePostStagingToLedger}
         />
       </main>
     </div>
