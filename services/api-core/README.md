@@ -21,6 +21,16 @@ tampilan belaka.
 | `METAAPI_CLIENT_URL` / `METAAPI_PROVISIONING_URL` | URL resmi MetaApi | Override bila self-hosted MetaApi |
 | `METAAPI_TIMEOUT_MS` | `15000` | Abort tiap panggilan vendor |
 
+## Kontrak `Connector` (M6)
+
+Semua sumber angka eksternal memenuhi satu interface
+(`src/modules/connectors/connector.ts`): `type`, `credentialRef`, `syncIntervalSec`, `normalizer`.
+Yang aktif sekarang `MT5_CLOUD` (pull, kredensial terenkripsi) dan `MT5_STATEMENT`
+(upload, tanpa kredensial, `syncIntervalSec = 0`). Menambah bank/crypto/e-wallet/aset
+fisik/hutang = satu class + satu entri di `connectors/registry.ts` — **tanpa** endpoint baru
+dan tanpa jalur tulis saldo. Cadence `MT5_*` dibaca dari `Mt5CloudConnector`, jadi scheduler,
+UI, dan CI tidak bisa beda angka (dijaga `connectors.spec.ts`).
+
 ## Routes
 
 | Route | Perilaku |

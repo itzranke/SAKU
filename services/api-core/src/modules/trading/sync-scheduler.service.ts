@@ -20,12 +20,15 @@ import { INTEGRATIONS_REPOSITORY, IntegrationRow } from '../integrations/integra
 import { MT5_PROVIDER, mt5CloudEnabled, mt5ProviderKind } from '../integrations/providers/provider.factory';
 import { Mt5Provider } from '../integrations/providers/mt5-provider';
 import { friendlyProviderError } from '../integrations/providers/error-mapping';
+import { mt5CloudConnector } from '../connectors/mt5-cloud.connector';
 import { NormalizedMt5Sync } from './mt5-payload';
 import { TradingService } from './trading.service';
 
-export const SNAPSHOT_INTERVAL_SEC = Math.max(0, Number(process.env.MT5_SNAPSHOT_INTERVAL_SEC ?? 120) || 0);
-export const DEALS_INTERVAL_MIN = Math.max(0, Number(process.env.MT5_DEALS_INTERVAL_MIN ?? 10) || 0);
-const FIRST_SYNC_DAYS = Math.max(1, Number(process.env.MT5_FIRST_SYNC_DAYS ?? 30) || 30);
+// Cadence truth lives in the MT5 connector descriptor (M6) so the scheduler, the Settings copy
+// and CI agree on one set of numbers. These aliases keep existing imports working unchanged.
+export const SNAPSHOT_INTERVAL_SEC = mt5CloudConnector.syncIntervalSec;
+export const DEALS_INTERVAL_MIN = mt5CloudConnector.dealsIntervalMin;
+const FIRST_SYNC_DAYS = mt5CloudConnector.firstSyncDays;
 
 export interface SyncAccountRow {
   login: string;

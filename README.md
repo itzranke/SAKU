@@ -1,9 +1,13 @@
-# 👛 SAKU — Personal Financial Operating System (v1.0.0 GA Release)
+# 👛 SAKU — Terminal Keuangan Personal (v1.2.0)
 
-> **SAKU** is an institutional-grade, multi-asset personal wealth and active trading management platform built for individuals, households, investors, and active traders.
+> **SAKU** adalah *pocket financial terminal*: satu tempat untuk **jurnal kekayaan, budgeting, aset, dan hutang**.
+> Setiap angka berasal dari jurnal double-entry yang immutable; setiap angka eksternal masuk lewat **konektor** —
+> MetaTrader 5 hanyalah salah satunya.
+>
+> *A pocket financial terminal for wealth journaling, budgeting, assets and debts — institutional-grade double-entry core, built for individuals, households, investors, and active traders.*
 >
 > 🚀 **Official Repository**: [https://github.com/itzranke/SAKU](https://github.com/itzranke/SAKU)  
-> 🏷️ **Latest Release**: `v1.0.0-GA` (General Availability Launch)
+> 🏷️ **Latest Release**: `v1.2.0` (MT5 sync tanpa-EA; biner desktop/mobile masih `v1.0.0`, build berikutnya menyusul)
 
 ---
 
@@ -17,12 +21,44 @@
 | 🤖 **Android Mobile App** | React Native Expo (`.apk`) | [Download SAKU-v1.0.0.apk](https://github.com/itzranke/SAKU/releases/tag/v1.0.0) |
 | 🍎 **iOS Mobile App** | React Native Expo (`.ipa` / TestFlight) | [Join TestFlight / Download IPA](https://github.com/itzranke/SAKU/releases/tag/v1.0.0) |
 
+> Aset unduhan di atas masih build `v1.0.0`; perubahan `v1.2.0` ada di jalur sumber/API (konektor & ledger).
+
+---
+
+## 🔌 Sumber Aset (Connectors)
+
+SAKU tidak punya "modul MT5" yang berdiri sendiri. Yang ada adalah **konektor** — satu kontrak
+`Connector { type, credentialRef, syncIntervalSec, normalizer }`
+([`services/api-core/src/modules/connectors/connector.ts`](services/api-core/src/modules/connectors/connector.ts)).
+Semua konektor hanya boleh menghasilkan **baris deal ternormalisasi** yang masuk ke pipeline jurnal
+yang sama; tidak ada konektor yang boleh menulis saldo.
+
+| Konektor | Status | Kredensial | Cadence |
+|---|---|---|---|
+| `MT5_CLOUD` — MetaTrader 5 via middleware cloud | ✅ aktif | investor password (read-only), AES-256-GCM di sisi server | snapshot 120 dtk · deal 10 mnt |
+| `MT5_STATEMENT` — import statement/CSV broker | ✅ aktif (manual) | tidak ada — dokumen dari user | manual/batch |
+| `MANUAL` / bot — 1-tap, WhatsApp/Telegram | ✅ aktif | tidak ada | realtime |
+| `BANK` (BCA, Mandiri, Jago/Seabank) | 🗺️ roadmap | read-only (API/CSV) | — |
+| `CRYPTO` (Indodax, Tokocrypto, exchange) | 🗺️ roadmap | API key **read-only** | — |
+| `EWALLET` (GoPay, OVO, DANA, ShopeePay) | 🗺️ roadmap | mutual-aid/export CSV | — |
+| `ASET_FISIK` (kendaraan, emas, properti) | 🗺️ roadmap | tidak ada — nilai diisi + bukti foto | manual |
+| `HUTANG` (KPR, pinjol, talangan) | 🗺️ roadmap | tidak ada — jadwal angsuran | manual + pengingat |
+
+Menambah sumber aset baru = **satu class** yang mengimplementasikan `Connector` + **satu baris**
+di [`registry.ts`](services/api-core/src/modules/connectors/registry.ts). Tidak ada plugin system,
+tidak ada DI baru, tidak ada tabel kredensial baru. Kontraknya yang membuat produk tetap ramping
+walau sumber datanya banyak.
+
+> 📌 MT5 bukan lagi pusat cerita: dulu jalur utamanya EA di terminal user, sekarang konektor cloud
+> read-only (lihat [ADR-022](docs/22_MT5_INVESTOR_SYNC_ADR.md)). EA lama tetap dilayani sebagai
+> opsi privasi zero-password — [`services/deprecated/mt5-ea/`](services/deprecated/mt5-ea/).
+
 ---
 
 ## 🌟 Core Pillars & Key Features
 
 1. **Immutable Double-Entry Ledger Core (`@saku/ledger-core`)**: Every financial balance is backed by balanced debit and credit journal entries. Zero raw scalar number modifications.
-2. **Unified Net Worth Aggregation**: Consolidates Bank Accounts (BCA, Mandiri), E-Wallets (GoPay, OVO), Cash, Stocks (IDX/US), and Active MT5 Forex trading accounts in one unified dashboard.
+2. **Unified Net Worth Aggregation** (via Connectors): Kas, bank, e-wallet, saham, aset fisik, hutang, dan akun trading MT5 — masing-masing masuk sebagai konektor dengan badge sumber di jurnalnya, bukan sebagai fitur terpisah.
 3. **SONZI Framework Financial Health Engine**: Adaptive 3-stage wealth protection engine (Stage 1 Safety $\to$ Stage 2 Growth $\to$ Stage 3 FIRE) with customizable risk allocation profiles (Conservative, Moderate, Aggressive).
 4. **Statement Import & Staging Sandbox**: Drag-and-drop CSV/PDF bank statement uploader with automated Rule Matcher Engine (`GRAB` $\to$ `Transport`) before ledger posting.
 5. **MetaTrader 5 (MT5) Cloud Connector** (ADR-022): read-only server-side sync — user mengisi login + **investor password** + server di Settings → Integrations, SAKU yang menarik snapshot & closed deals (tidak ada yang diinstal di terminal). Rekonsiliasi via import statement/CSV. The MQL5 `SakuBridge.mq5` push EA is **deprecated** and kept as an optional zero-privacy-password path for power users (`services/deprecated/mt5-ea/`).
