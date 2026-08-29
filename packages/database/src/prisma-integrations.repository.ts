@@ -43,6 +43,48 @@ export interface IntegrationPatch {
   vendorAccountId?: string | null;
 }
 
+/** M3 display-only snapshot cache row (never a ledger source). */
+export interface AccountStateRow {
+  integrationAccountId: string;
+  equity: number;
+  balance: number;
+  margin: number | null;
+  currency: string;
+  serverTime: string | null;
+  updatedAt: string;
+}
+
+export interface AccountStateInput {
+  integrationAccountId: string;
+  equity: number;
+  balance: number;
+  margin?: number | null;
+  currency: string;
+  serverTime?: string | null;
+}
+
+type RawState = {
+  integrationAccountId: string;
+  equity: unknown;
+  balance: unknown;
+  margin: unknown;
+  currency: string;
+  serverTime: Date | null;
+  updatedAt: Date;
+};
+
+const toNum = (v: unknown): number => Number(v == null ? 0 : String(v));
+
+const toStateRow = (r: RawState): AccountStateRow => ({
+  integrationAccountId: r.integrationAccountId,
+  equity: toNum(r.equity),
+  balance: toNum(r.balance),
+  margin: r.margin == null ? null : toNum(r.margin),
+  currency: r.currency,
+  serverTime: r.serverTime ? r.serverTime.toISOString() : null,
+  updatedAt: r.updatedAt.toISOString(),
+});
+
 type RawIntegration = {
   id: string;
   ownerId: string;
@@ -160,12 +202,51 @@ export class PrismaIntegrationsRepository {
   async remove(id: string): Promise<boolean> {
     const prisma = await this.db();
     try {
-      await prisma.integrationAccount.delete({ where: { id } });
+      // One statement, both rows: the display cache must not outlive its connector.
+      await prisma.$transaction(async (tx: any) => {
+        await tx.accountStateCache.deleteMany({ where: { integrationAccountId: id } });
+        await tx.integrationAccount.delete({ where: { id } });
+      });
       return true;
     } catch (err) {
       if ((err as any)?.code === 'P2025') return false;
       throw err;
     }
+  }
+
+  /**
+   * M3 — display-only snapshot cache (equity/balance for the Net Worth & health cards).
+   * Nothing in the ledger read path touches this table.
+   */
+  async upsertAccountState(input: AccountStateInput): Promise<AccountStateRow> {
+    const prisma = await this.db();
+    const row = (await prisma.accountStateCache.upsert({
+      where: { integrationAccountId: input.integrationAccountId },
+      update: {
+        equity: input.equity,
+        balance: input.balance,
+        margin: input.margin ?? null,
+        currency: input.currency,
+        serverTime: input.serverTime ? new Date(input.serverTime) : null,
+      },
+      create: {
+        integrationAccountId: input.integrationAccountId,
+        equity: input.equity,
+        balance: input.balance,
+        margin: input.margin ?? null,
+        currency: input.currency,
+        serverTime: input.serverTime ? new Date(input.serverTime) : null,
+      },
+    })) as unknown as RawState;
+    return toStateRow(row);
+  }
+
+  async listAccountState(): Promise<AccountStateRow[]> {
+    const prisma = await this.db();
+    const rows = (await prisma.accountStateCache.findMany({
+      orderBy: { updatedAt: 'desc' },
+    })) as unknown as RawState[];
+    return rows.map(toStateRow);
   }
 
   async disconnect(): Promise<void> {

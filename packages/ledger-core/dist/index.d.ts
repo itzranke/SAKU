@@ -25,7 +25,9 @@ export interface JournalValidationResult {
  */
 export declare function validateJournalEntries(entries: LedgerEntryInput[]): JournalValidationResult;
 export type AccountType = 'BANK' | 'EWALLET' | 'CASH' | 'CREDIT_CARD' | 'INVESTMENT' | 'TRADING' | 'OWNERS_EQUITY' | 'INCOME' | 'EXPENSE';
-export type SourceType = 'MANUAL' | 'STATEMENT_IMPORT' | 'MT5_SYNC' | 'BOT_CAPTURE' | 'RECONCILIATION';
+export type SourceType = 'MANUAL' | 'STATEMENT_IMPORT' | 'MT5_SYNC' | 'BOT_CAPTURE' | 'RECONCILIATION'
+/** Deprecated push bridge (SakuBridge.mq5). Audit provenance only (ADR-022). */
+ | 'EA_LEGACY';
 export type TransactionType = 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'TRADING_PROFIT';
 export interface AccountDef {
     code: string;

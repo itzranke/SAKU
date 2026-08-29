@@ -56,4 +56,10 @@ Jalur primer: server-side pull dengan investor password.
   depan, BUKAN konektor broker. Jangan simpan kredensial finansial di sana.
 
 ## Implementasi
-- M1 — `processed_deals` persisten + migration SQL + CI idempotensi: PR #2.
+- M1 — `processed_deals` persisten + transaction jurnal|dedupe + CI idempotensi: PR #2.
+- M2 — modul `integrations` + AES-256-GCM + redaksi global + kebijakan investor-only di API: PR #2 (ikut ter-merge bersama M1).
+- M3 — `Mt5Provider` (MetaApi/Mock/Null) + scheduler snapshot & deals + notice deprecated EA: PR #3.
+- M4 — deprecation EA + penyelarasan dokumen: PR #….
+- M5 — Settings > Integrations + badge sumber: PR #….
+- M6 — ConnectorRegistry generik + reposisi README: PR #….
+

@@ -24,18 +24,21 @@ export type EntryKind = 'IN' | 'OUT' | 'INOUT';
 export interface RawMt5Deal {
   ticket?: string | number;
   deal?: string | number;
+  id?: string | number; // MetaApi history-deals use `id` for the deal ticket
   order?: string | number;
   login?: string | number;
   symbol?: string;
-  type?: string;
+  type?: string; // BUY | SELL | DEAL_TYPE_BUY | DEAL_TYPE_SELL
   entry?: string;
-  action?: string; // MetaApi uses `action` for deal entry (DEAL_ENTRY_OUT etc.)
+  entryType?: string; // MetaApi: DEAL_ENTRY_IN | DEAL_ENTRY_OUT | DEAL_ENTRY_INOUT
+  action?: string; // some dumps use `action` for deal entry
   lots?: number | string;
   volume?: number | string;
   open_price?: number | string;
   close_price?: number | string;
   price_open?: number | string;
   price_close?: number | string;
+  price?: number | string; // MetaApi single deal price (open for IN deals, close for OUT deals)
   profit?: number | string;
   commission?: number | string;
   swap?: number | string;
@@ -184,7 +187,7 @@ export function normalizeClosedDeal(deal: RawMt5Deal, accountFallback?: string):
   warnings: string[];
 } {
   const warnings: string[] = [];
-  const ticket = str(deal.ticket ?? deal.deal ?? deal.order);
+  const ticket = str(deal.ticket ?? deal.deal ?? deal.id ?? deal.order);
   if (!ticket) {
     return { warnings: ['closed_deal skipped: no ticket/deal/order id'] };
   }
@@ -200,17 +203,23 @@ export function normalizeClosedDeal(deal: RawMt5Deal, accountFallback?: string):
   }
 
   const typeRaw = (str(deal.type) ?? '').toUpperCase();
+  const direction = typeRaw.includes('BUY') ? 'BUY' : typeRaw.includes('SELL') ? 'SELL' : undefined;
+  const entry = normalizeEntry(str(deal.entry), str(deal.entryType), str(deal.action));
+  // MetaApi gives ONE price per deal: it is the opening price for IN deals, closing for OUT.
+  const price = num(deal.price);
+  const openPrice = num(deal.open_price ?? deal.price_open) ?? (entry === 'IN' ? price : undefined);
+  const closePrice = num(deal.close_price ?? deal.price_close) ?? (entry === 'OUT' || entry === 'INOUT' ? price : undefined);
   return {
     warnings,
     deal: {
       ticket,
       login: str(deal.login) ?? str(accountFallback),
       symbol: str(deal.symbol),
-      type: typeRaw === 'BUY' || typeRaw === 'SELL' ? typeRaw : undefined,
-      entry: normalizeEntry(str(deal.entry), str(deal.action)),
+      type: direction,
+      entry,
       lots: num(deal.lots ?? deal.volume),
-      openPrice: num(deal.open_price ?? deal.price_open),
-      closePrice: num(deal.close_price ?? deal.price_close),
+      openPrice,
+      closePrice,
       profit: num(deal.profit) ?? 0,
       commission: num(deal.commission ?? deal.fee) ?? 0,
       swap: num(deal.swap) ?? 0,
