@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 
-@Injectable Feld()
+@Injectable()
 export class AuthService {
   private otpStore = new Map<string, { code: string; count: number; lastRequestedAt: number }>();
 

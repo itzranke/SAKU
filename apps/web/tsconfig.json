@@ -1,5 +1,9 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@saku/ledger-core": ["../../packages/ledger-core/index.ts"]
+    },
     "lib": [
       "dom",
       "dom.iterable",
