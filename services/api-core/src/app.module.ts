@@ -18,11 +18,8 @@ import { PaymentController } from './modules/payment/payment.controller';
 import { PaymentService } from './modules/payment/payment.service';
 import { B2bController } from './modules/b2b/b2b.controller';
 import { B2bService } from './modules/b2b/b2b.service';
-<<<<<<< HEAD
-=======
 import { ObsidianController } from './modules/obsidian/obsidian.controller';
 import { ObsidianService } from './modules/obsidian/obsidian.service';
->>>>>>> 8e7a0dd (feat(skills): integrate caveman, rtk (redux toolkit), graphify, obsidian journal, and ponytail automation skills)
 
 @Module({
   imports: [],
@@ -36,10 +33,7 @@ import { ObsidianService } from './modules/obsidian/obsidian.service';
     SecurityController,
     PaymentController,
     B2bController,
-<<<<<<< HEAD
-=======
     ObsidianController,
->>>>>>> 8e7a0dd (feat(skills): integrate caveman, rtk (redux toolkit), graphify, obsidian journal, and ponytail automation skills)
   ],
   providers: [
     AuthService,
@@ -52,10 +46,7 @@ import { ObsidianService } from './modules/obsidian/obsidian.service';
     SecurityService,
     PaymentService,
     B2bService,
-<<<<<<< HEAD
-=======
     ObsidianService,
->>>>>>> 8e7a0dd (feat(skills): integrate caveman, rtk (redux toolkit), graphify, obsidian journal, and ponytail automation skills)
   ],
 })
 export class AppModule {}

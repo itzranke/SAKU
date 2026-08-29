@@ -8,11 +8,8 @@ import { SonziHealthCard } from './components/SonziHealthCard';
 import { SubscriptionModal } from './components/SubscriptionModal';
 import { CommandPalette } from './components/CommandPalette';
 import { ToastProvider, useToast } from './components/ToastProvider';
-<<<<<<< HEAD
-=======
 import { GraphifyWealthChart } from './components/GraphifyWealthChart';
 import { ObsidianJournalModal } from './components/ObsidianJournalModal';
->>>>>>> 8e7a0dd (feat(skills): integrate caveman, rtk (redux toolkit), graphify, obsidian journal, and ponytail automation skills)
 
 function DashboardContent() {
   const [baseCurrency, setBaseCurrency] = useState<'IDR' | 'USD'>('IDR');
@@ -20,10 +17,7 @@ function DashboardContent() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
-<<<<<<< HEAD
-=======
   const [isObsidianModalOpen, setIsObsidianModalOpen] = useState(false);
->>>>>>> 8e7a0dd (feat(skills): integrate caveman, rtk (redux toolkit), graphify, obsidian journal, and ponytail automation skills)
 
   const { showToast } = useToast();
 
@@ -353,8 +347,6 @@ function DashboardContent() {
           onClose={() => setIsCommandPaletteOpen(false)}
           onSelectAction={handleCommandPaletteAction}
         />
-<<<<<<< HEAD
-=======
 
         {/* Obsidian Markdown Vault Journal Modal */}
         <ObsidianJournalModal
@@ -362,7 +354,6 @@ function DashboardContent() {
           onClose={() => setIsObsidianModalOpen(false)}
           onSaveMarkdown={(note) => showToast('Jurnal Obsidian Vault (.md) berhasil diekspor!', 'success')}
         />
->>>>>>> 8e7a0dd (feat(skills): integrate caveman, rtk (redux toolkit), graphify, obsidian journal, and ponytail automation skills)
       </main>
     </div>
   );
