@@ -8,6 +8,11 @@ import { SonziHealthCard } from './components/SonziHealthCard';
 import { SubscriptionModal } from './components/SubscriptionModal';
 import { CommandPalette } from './components/CommandPalette';
 import { ToastProvider, useToast } from './components/ToastProvider';
+<<<<<<< HEAD
+=======
+import { GraphifyWealthChart } from './components/GraphifyWealthChart';
+import { ObsidianJournalModal } from './components/ObsidianJournalModal';
+>>>>>>> 8e7a0dd (feat(skills): integrate caveman, rtk (redux toolkit), graphify, obsidian journal, and ponytail automation skills)
 
 function DashboardContent() {
   const [baseCurrency, setBaseCurrency] = useState<'IDR' | 'USD'>('IDR');
@@ -15,6 +20,10 @@ function DashboardContent() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+<<<<<<< HEAD
+=======
+  const [isObsidianModalOpen, setIsObsidianModalOpen] = useState(false);
+>>>>>>> 8e7a0dd (feat(skills): integrate caveman, rtk (redux toolkit), graphify, obsidian journal, and ponytail automation skills)
 
   const { showToast } = useToast();
 
@@ -110,14 +119,17 @@ function DashboardContent() {
             <a href="#ledger" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 text-sm transition">
               <span>📖</span> Jurnal Transaksi
             </a>
+            <button
+              onClick={() => setIsObsidianModalOpen(true)}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-purple-400 hover:bg-purple-500/10 hover:text-purple-300 text-sm transition border border-purple-500/10"
+            >
+              <span>📓</span> Obsidian Vault Journal
+            </button>
             <a href="#investments" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 text-sm transition">
               <span>📈</span> Portofolio Investasi
             </a>
             <a href="#trading" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 text-sm transition">
               <span>⚡</span> Active Trading MT5
-            </a>
-            <a href="#reports" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 text-sm transition">
-              <span>📑</span> Laporan Laba/Rugi
             </a>
           </nav>
         </div>
@@ -249,6 +261,9 @@ function DashboardContent() {
         {/* SONZI Framework & Financial Health Card */}
         <SonziHealthCard />
 
+        {/* Graphify Wealth Flow Network Chart */}
+        <GraphifyWealthChart />
+
         {/* Account Breakdown & Recent Transactions Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Accounts List */}
@@ -338,6 +353,16 @@ function DashboardContent() {
           onClose={() => setIsCommandPaletteOpen(false)}
           onSelectAction={handleCommandPaletteAction}
         />
+<<<<<<< HEAD
+=======
+
+        {/* Obsidian Markdown Vault Journal Modal */}
+        <ObsidianJournalModal
+          isOpen={isObsidianModalOpen}
+          onClose={() => setIsObsidianModalOpen(false)}
+          onSaveMarkdown={(note) => showToast('Jurnal Obsidian Vault (.md) berhasil diekspor!', 'success')}
+        />
+>>>>>>> 8e7a0dd (feat(skills): integrate caveman, rtk (redux toolkit), graphify, obsidian journal, and ponytail automation skills)
       </main>
     </div>
   );
