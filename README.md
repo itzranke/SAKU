@@ -7,6 +7,18 @@
 
 ---
 
+## 📲 DOWNLOAD & LIVE ACCESS LINKS
+
+| Platform Target | Type / Distribution | Access & Download Link |
+| :--- | :--- | :--- |
+| 🌐 **SAKU Web Application** | Next.js 14 App Router | [Launch Live Web App](http://localhost:3000) / [Repository Main](https://github.com/itzranke/SAKU) |
+| 💻 **PC Desktop App (Windows)** | Tauri 2.0 Binary (`.exe`) | [Download SAKU-Setup-v1.0.0.exe](https://github.com/itzranke/SAKU/releases/tag/v1.0.0) |
+| 🍏 **PC Desktop App (macOS)** | Tauri 2.0 Bundle (`.dmg`) | [Download SAKU-v1.0.0.dmg](https://github.com/itzranke/SAKU/releases/tag/v1.0.0) |
+| 🤖 **Android Mobile App** | React Native Expo (`.apk`) | [Download SAKU-v1.0.0.apk](https://github.com/itzranke/SAKU/releases/tag/v1.0.0) |
+| 🍎 **iOS Mobile App** | React Native Expo (`.ipa` / TestFlight) | [Join TestFlight / Download IPA](https://github.com/itzranke/SAKU/releases/tag/v1.0.0) |
+
+---
+
 ## 🌟 Core Pillars & Key Features
 
 1. **Immutable Double-Entry Ledger Core (`@saku/ledger-core`)**: Every financial balance is backed by balanced debit and credit journal entries. Zero raw scalar number modifications.
