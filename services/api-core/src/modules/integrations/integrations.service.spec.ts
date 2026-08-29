@@ -159,3 +159,37 @@ describe('IntegrationsService — custody, sealing, and non-leaky responses (M2)
     await expect(service.update(integration.id, {} as any)).rejects.toThrow(/Tidak ada perubahan/);
   });
 });
+
+/** ADR-023: ownerId selalu dari server — field dari klien diabaikan, param konteks dihormati. */
+describe('IntegrationsService — kepemilikan (ADR-023)', () => {
+  let repo: InMemoryIntegrationsRepository;
+  let crypto: CryptoService;
+  let provider: SpyProvider;
+  let service: IntegrationsService;
+
+  beforeEach(() => {
+    process.env.ENCRYPTION_MASTER_KEY = 'saku_unit_test_key_32_bytes_long!!';
+    repo = new InMemoryIntegrationsRepository();
+    crypto = new CryptoService();
+    provider = new SpyProvider();
+    service = new IntegrationsService(repo, crypto, provider);
+  });
+
+  it('body.ownerId dari klien DIABAIKAN — baris selalu milik fallback user-local', async () => {
+    const { integration } = await service.create({ ...validBody(), ownerId: 'penyusup' } as any);
+    const row = await repo.find(integration.id);
+    expect(row!.ownerId).toBe('user-local');
+    const listed = await service.list('user-local');
+    expect(listed.integrations.map((i) => i.id)).toContain(integration.id);
+  });
+
+  it('owner dari konteks sesi (param) dipakai sebagai pemilik baris', async () => {
+    const { integration } = await service.create(validBody() as any, 'owner-sesi-A');
+    const row = await repo.find(integration.id);
+    expect(row!.ownerId).toBe('owner-sesi-A');
+    const forA = await service.list('owner-sesi-A');
+    const forLocal = await service.list('user-local');
+    expect(forA.integrations.map((i) => i.id)).toContain(integration.id);
+    expect(forLocal.integrations.map((i) => i.id)).not.toContain(integration.id);
+  });
+});

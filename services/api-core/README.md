@@ -20,6 +20,8 @@ tampilan belaka.
 | `METAAPI_REGION` | `new-york` | Region MetaApi; membentuk base URL `mt-client-api-v1.{region}.agiliumtrade.ai` |
 | `METAAPI_CLIENT_URL` / `METAAPI_PROVISIONING_URL` | URL resmi MetaApi | Override bila self-hosted MetaApi |
 | `METAAPI_TIMEOUT_MS` | `15000` | Abort tiap panggilan vendor |
+| `SAKU_SESSION_TTL_SEC` | `604800` (7 hari) | TTL sesi login (ADR-023); min 60. Restart proses = semua sesi gugur (store in-memory fase 1) |
+| `SAKU_AUTH_ENFORCE` | `false` | `true` ⇒ endpoint ber-`@OwnerScoped()` (mis. `/integrations`) menolak request tanpa header `X-Saku-Session` valid dengan 401. Default off agar CI/tes lokal jalan tanpa login |
 
 ## Kontrak `Connector` (M6)
 
@@ -35,8 +37,9 @@ UI, dan CI tidak bisa beda angka (dijaga `connectors.spec.ts`).
 
 | Route | Perilaku |
 |---|---|
+| `POST /api/v1/auth/request-otp` · `verify-otp` | Fase dev: OTP di-log console (delivery mock, ADR-023 §2.5). `verify-otp` sukses menerbitkan **sesi nyata**: `sakuSession` (token acak 32-byte; server simpan SHA-256 saja) + `sakuSessionExpiresAt`; kirim kembali sebagai header `X-Saku-Session` |
 | `GET /api/v1/connectors` | Registry Connector M6, read-only: `type/label/status/direction/syncIntervalSec/credentialRef/normalizer`. `credentialRef` = kebijakan penyimpanan (kind/field/mode/algorithm) — **bukan** materi rahasia; tidak ada endpoint tulis (registry = kode) |
-| `GET /api/v1/integrations` · `GET /:id` | Daftar koneksi; **tidak pernah** mengembalikan `credentialCipher`/password. Field publik: `hasCredential`, `credentialMode: investor-read-only`, `credentialAlgorithm: AES-256-GCM` |
+| `GET /api/v1/integrations` · `GET /:id` | Daftar koneksi; **tidak pernah** mengembalikan `credentialCipher`/password. Field publik: `hasCredential`, `credentialMode: investor-read-only`, `credentialAlgorithm: AES-256-GCM`. `ownerId` = hasil OwnerGuard (sesi → owner; tanpa sesi → `user-local`) — `?ownerId=`/`body.ownerId` dari klien **diabaikan** (ADR-023) |
 | `POST /api/v1/integrations` | `label, login, server, port?, investor_password` → 400 bila `master_password`/`trader_password`/`credentialCipher` kiriman klien; copy error selalu menyebut "investor password (read-only)" |
 | `PATCH /api/v1/integrations/:id` | Rotasi kredensial (`investor_password` baru), toggle `enabled`, ubah label/server/port |
 | `DELETE /api/v1/integrations/:id` | Putuskan koneksi (baris + cache state dihapus) + anjuran rotasi password di broker |

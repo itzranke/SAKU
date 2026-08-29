@@ -30,6 +30,9 @@ import { InMemoryLedgerRepository } from './modules/ledger/in-memory-ledger.repo
 import { LEDGER_REPOSITORY, LedgerRepository } from './modules/ledger/ledger.repository';
 import { IntegrationsController } from './modules/integrations/integrations.controller';
 import { ConnectorsController } from './modules/connectors/connectors.controller';
+import { SessionService } from './modules/auth/session.service';
+import { OwnerGuard } from './modules/auth/owner.guard';
+import { APP_GUARD } from '@nestjs/core';
 import { IntegrationsService } from './modules/integrations/integrations.service';
 import { InMemoryIntegrationsRepository } from './modules/integrations/in-memory-integrations.repository';
 import {
@@ -103,6 +106,8 @@ export function buildIntegrationsRepository(): IntegrationsRepository {
   ],
   providers: [
     AuthService,
+    SessionService,
+    { provide: APP_GUARD, useClass: OwnerGuard },
     AccountsService,
     TradingService,
     BotService,

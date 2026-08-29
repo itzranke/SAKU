@@ -10,16 +10,22 @@
  *
  * There is intentionally NO route that returns a decrypted credential.
  */
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req } from '@nestjs/common';
 import { CreateIntegrationBody, IntegrationsService } from './integrations.service';
+import { OwnerScoped, RequestWithOwner } from '../auth/owner.guard';
 
+/**
+ * ADR-023: `ownerId` selalu hasil resolusi OwnerGuard (sesi → owner; tanpa sesi →
+ * 'user-local'). `?ownerId=` dan `body.ownerId` dari klien DIABAIKAN (deprecated).
+ */
+@OwnerScoped()
 @Controller('integrations')
 export class IntegrationsController {
   constructor(private readonly integrations: IntegrationsService) {}
 
   @Get()
-  list(@Query('ownerId') ownerId?: string) {
-    return this.integrations.list(ownerId);
+  list(@Req() req: RequestWithOwner, @Query('ownerId') _queryOwnerId?: string) {
+    return this.integrations.list(req.ownerId);
   }
 
   @Get(':id')
@@ -28,8 +34,8 @@ export class IntegrationsController {
   }
 
   @Post()
-  create(@Body() body: CreateIntegrationBody) {
-    return this.integrations.create(body);
+  create(@Req() req: RequestWithOwner, @Body() body: CreateIntegrationBody) {
+    return this.integrations.create(body, req.ownerId);
   }
 
   @Patch(':id')
