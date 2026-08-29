@@ -13,6 +13,10 @@ import { SonziController } from './modules/sonzi/sonzi.controller';
 import { SonziService } from './modules/sonzi/sonzi.service';
 import { SecurityController } from './modules/security/security.controller';
 import { SecurityService } from './modules/security/rate-limiter.service';
+import { PaymentController } from './modules/payment/payment.controller';
+import { PaymentService } from './modules/payment/payment.service';
+import { B2bController } from './modules/b2b/b2b.controller';
+import { B2bService } from './modules/b2b/b2b.service';
 
 @Module({
   imports: [],
@@ -24,6 +28,8 @@ import { SecurityService } from './modules/security/rate-limiter.service';
     StagingController,
     SonziController,
     SecurityController,
+    PaymentController,
+    B2bController,
   ],
   providers: [
     AuthService,
@@ -33,6 +39,8 @@ import { SecurityService } from './modules/security/rate-limiter.service';
     StagingService,
     SonziService,
     SecurityService,
+    PaymentService,
+    B2bService,
   ],
 })
 export class AppModule {}

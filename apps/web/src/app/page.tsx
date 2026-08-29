@@ -5,11 +5,13 @@ import { motion } from 'framer-motion';
 import TransactionModal from './components/TransactionModal';
 import { StatementImportModal } from './components/StatementImportModal';
 import { SonziHealthCard } from './components/SonziHealthCard';
+import { SubscriptionModal } from './components/SubscriptionModal';
 
 export default function SakuDashboard() {
   const [baseCurrency, setBaseCurrency] = useState<'IDR' | 'USD'>('IDR');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
 
   // Sample Aggregated State
   const [netWorthIDR, setNetWorthIDR] = useState(1450230000);
@@ -107,7 +109,14 @@ export default function SakuDashboard() {
           </nav>
         </div>
 
-        <div className="border-t border-slate-800 pt-4">
+        <div className="border-t border-slate-800 pt-4 space-y-3">
+          <button
+            onClick={() => setIsSubscriptionModalOpen(true)}
+            className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-emerald-600 p-2.5 text-xs font-bold text-white shadow-lg hover:brightness-110 transition-all text-center flex items-center justify-center gap-1.5"
+          >
+            <span>⭐</span> Berlangganan Pro
+          </button>
+
           <div className="flex items-center justify-between text-xs text-slate-400">
             <span>Status Sync MT5</span>
             <span className="inline-flex items-center gap-1.5 text-emerald-400 font-medium bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
@@ -294,6 +303,12 @@ export default function SakuDashboard() {
           isOpen={isImportModalOpen}
           onClose={() => setIsImportModalOpen(false)}
           onPostToLedger={handlePostStagingToLedger}
+        />
+
+        {/* Subscription Plan Modal Component */}
+        <SubscriptionModal
+          isOpen={isSubscriptionModalOpen}
+          onClose={() => setIsSubscriptionModalOpen(false)}
         />
       </main>
     </div>
