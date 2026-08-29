@@ -1,79 +1,57 @@
 # 🛡️ SONZI FINANCIAL MANAGEMENT FRAMEWORK IN SAKU
+## TIMELESS GUIDANCE & PROVIDER-AGNOSTIC ARCHITECTURE
 
 ---
 
-## 1. EXECUTIVE OVERVIEW
+### EXECUTIVE OVERVIEW
 
-The **SONZI Financial Framework** (*Final Management — SONZI*) is a staged, Indonesian/SEA-adapted wealth-building engine. It provides a structured, phase-gated progression from **Emergency Foundation (Stage 1)** to **Investment & Human Capital Acceleration (Stage 2)**, culminating in **Financial Independence via the 4% Trinity Rule (Stage 3)**.
+The **SONZI Financial Framework** (*Final Management — SONZI*) provides **timeless principles** for staged wealth accumulation. While specific financial providers (banks, e-wallets, brokers) evolve over time, the underlying structural theory remains eternally applicable.
 
-SAKU incorporates the SONZI framework as an optional **Guiding Financial Engine** within its Lightweight Single-Pane Operating System.
+SAKU implements the SONZI framework as an **Agnostic & Customizable Guide**, allowing users to map any present or future financial provider to SONZI's core roles.
 
 ---
 
-## 2. STAGED LIFECYCLE ENGINE
+## 1. PROVIDER-AGNOSTIC ROLE MAPPING
+
+SAKU decouples the SONZI workflow from specific brand names, using flexible functional roles:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ SONZI STAGED LIFECYCLE PROGRESSION                                          │
+│ PROVIDER-AGNOSTIC ROLE ARCHITECTURE                                         │
+├───────────────────┬─────────────────────────────┬───────────────────────────┤
+│ Functional Role   │ Original Example (Sonzi)    │ Modern / Future Equivalent│
+├───────────────────┼─────────────────────────────┼───────────────────────────┤
+│ 1. INCOME_HUB     │ Bank BNI                    │ BCA, Mandiri, DBS, Wise   │
+│ 2. ALLOCATION_HUB │ Bank Jago Pockets           │ Blu, SeaBank, Custom Cash │
+│ 3. SECURITIES     │ Ajaib                       │ Stockbit, Bibit, Bareksa  │
+│ 4. CRYPTO_ASSETS  │ Pluang                      │ Indodax, Tokocrypto, Bybit│
+│ 5. TRADING_HUB    │ HFM                         │ Exness, XM, Any MT4/MT5   │
+└───────────────────┴─────────────────────────────┴───────────────────────────┘
+```
+
+---
+
+## 2. TIMELESS STAGED LIFECYCLE PRINCIPLES
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 3 TIMELESS STAGES OF WEALTH ACCUMULATION                                    │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ STAGE 1: FINANCIAL FOUNDATION (Dana Darurat < 6 Months Expense)             │
-│ ├── 50% Needs (Kebutuhan)                                                  │
-│ ├── 30% Wants (Keinginan)                                                  │
-│ └── 20% Emergency Fund (Bank Jago / Liquid Savings)                         │
-│ ⚠️ Investment Alerts Locked Until Emergency Target Reached                  │
+│ STAGE 1: FOUNDATION (Emergency Fund < Target)                               │
+│ └── Priorities: Kebutuhan, Keinginan, Dana Darurat Likuid.                  │
+│     *Goal: Build 3–6+ months of living buffer before risking capital.*      │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ STAGE 2: INVESTMENT & HUMAN CAPITAL ACCELERATION (Emergency Target Met)     │
-│ ├── 40% Needs (Kebutuhan)                                                  │
-│ ├── 30% Wants (Keinginan)                                                  │
-│ ├── 20% Investment Sub-Allocation:                                         │
-│ │   ├── 40% Productive Assets (Work Tools / Income-Increasing Equipment)    │
-│ │   ├── 30% Securities (Saham / Reksadana via Ajaib / Bibit)                │
-│ │   ├── 20% Crypto (via Pluang / Indodax)                                   │
-│ │   └── 10% Additional Emergency Buffer (Bank Jago)                        │
-│ └── 10% Social & Human Capital Sub-Allocation:                             │
-│     ├── 50% Knowledge (Upskilling, Courses, Books)                         │
-│     ├── 30% Connections & Networking (Events, Coffee Meetings)             │
-│     └── 20% Giving / Social Impact (Charity, Family Support)               │
+│ STAGE 2: ACCELERATION (Emergency Fund Target Achieved)                      │
+│ └── Priorities: Kebutuhan, Keinginan, Investasi, & Alokasi Sosial/Ilmu.     │
+│     *Includes: Productive Assets (Income Tools) + Capital Investments.*    │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ STAGE 3: FINANCIAL INDEPENDENCE (4% Trinity Rule Execution)                 │
-│ └── Live Off Portfolio Yields: Annual Withdrawal = 4% of Total Net Worth    │
+│ STAGE 3: INDEPENDENCE (4% Trinity Rule Target Met)                          │
+│ └── Priorities: Living off portfolio yield without eroding capital base.   │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 3. WORKFLOW & ROUTING ARCHITECTURE (HUB & SPOKE MODEL)
+## 3. CUSTOMIZABLE ALLOCATION ENGINE
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ SONZI MONEY FLOW ROUTING ARCHITECTURE                                       │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ 1. PRIMARY INCOME HUB (BNI / BCA / Main Bank)                               │
-│    All salary, active income, and business revenue lands here.              │
-│                                  │                                          │
-│                                  ▼                                          │
-│ 2. ALLOCATION & EMERGENCY HUB (Bank Jago / Digital Pockets)                 │
-│    Routes money into virtual pockets (Needs, Wants, Emergency, Investments). │
-│                                  │                                          │
-│              ┌───────────────────┼───────────────────┐                      │
-│              ▼                   ▼                   ▼                      │
-│ 3. DESTINATIONS:                                                            │
-│    ├── Ajaib / Bibit (Securities - Saham & Reksadana)                       │
-│    ├── Pluang / Indodax (Crypto Assets)                                     │
-│    └── HFM / MT5 (Active Trading Account)                                   │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 4. UNIQUE SAKU INNOVATIONS FROM SONZI
-
-1. **Productive Goods Re-Classification**:
-   - Purchases of work tools (e.g., Laptops, Cameras, Software Licenses) are classified as **Investment in Productive Assets**, rather than consumption expenses.
-2. **Human Capital & Knowledge Tracking**:
-   - Courses, books, and networking expenditures are recognized as **Human Capital Investments** under the 10% Social/Education budget.
-3. **FIRE Trinity 4% Calculator**:
-   - Automatically computes when the user's Total Net Worth reaches $25 \times \text{Annual Expenses}$, marking the achievement of Stage 3 (Financial Independence).
-
----
-*SONZI Financial Management Framework documentation complete.*
+Users can freely adjust percentage targets (e.g., 50/30/20 vs. 40/30/20/10 vs. custom ratios) and assign their own preferred banks, e-wallets, or brokers without being locked into a fixed template.
