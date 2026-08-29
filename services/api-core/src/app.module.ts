@@ -11,6 +11,8 @@ import { StagingController } from './modules/staging/staging.controller';
 import { StagingService } from './modules/staging/staging.service';
 import { SonziController } from './modules/sonzi/sonzi.controller';
 import { SonziService } from './modules/sonzi/sonzi.service';
+import { SecurityController } from './modules/security/security.controller';
+import { SecurityService } from './modules/security/rate-limiter.service';
 
 @Module({
   imports: [],
@@ -21,6 +23,7 @@ import { SonziService } from './modules/sonzi/sonzi.service';
     BotController,
     StagingController,
     SonziController,
+    SecurityController,
   ],
   providers: [
     AuthService,
@@ -29,6 +32,7 @@ import { SonziService } from './modules/sonzi/sonzi.service';
     BotService,
     StagingService,
     SonziService,
+    SecurityService,
   ],
 })
 export class AppModule {}
