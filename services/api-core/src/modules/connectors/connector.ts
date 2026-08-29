@@ -39,6 +39,11 @@ export interface ConnectorDescriptor {
   direction: 'pull' | 'upload';
   syncIntervalSec: number;
   credentialRef: ConnectorCredentialRef;
+  /**
+   * Read-only DESCRIPTION of the normalize() mapping (for GET /connectors & docs) —
+   * never the function itself, never secret material.
+   */
+  normalizer: string;
 }
 
 export interface Connector extends ConnectorDescriptor {

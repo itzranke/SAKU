@@ -27,6 +27,9 @@ export class Mt5CloudConnector implements Connector {
     algorithm: 'AES-256-GCM',
   } as const;
 
+  readonly normalizer =
+    'normalizeMt5SyncPayload → NormalizedClosedDeal[] (deals → pipeline jurnal; snapshot/equity = display-only)';
+
   /** Snapshot cadence (display refresh); deal cadence exposed separately below. */
   get syncIntervalSec(): number {
     return MT5_SNAPSHOT_INTERVAL_SEC;
@@ -49,6 +52,7 @@ export class Mt5CloudConnector implements Connector {
     dealsIntervalMin: number;
     firstSyncDays: number;
     credentialRef: Connector['credentialRef'];
+    normalizer: string;
   } {
     return {
       type: this.type,
@@ -59,6 +63,7 @@ export class Mt5CloudConnector implements Connector {
       dealsIntervalMin: this.dealsIntervalMin,
       firstSyncDays: this.firstSyncDays,
       credentialRef: this.credentialRef,
+      normalizer: this.normalizer,
     };
   }
 

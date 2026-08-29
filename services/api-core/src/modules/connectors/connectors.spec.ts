@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CONNECTORS, connectorTypes, describeConnectors } from './registry';
+import { ConnectorsController } from './connectors.controller';
 import { mt5CloudConnector } from './mt5-cloud.connector';
 import { statementImportConnector } from './statement-import.connector';
 import {
@@ -69,5 +70,46 @@ describe('connectors (ADR-022 M6)', () => {
     const res = mt5CloudConnector.normalize({ account: '', closed_deals: [] });
     expect(res.deals).toEqual([]);
     expect(res.errors.length).toBeGreaterThan(0);
+  });
+});
+
+/** GET /api/v1/connectors — surface read-only registry (aditif, tanpa materi rahasia). */
+describe('ConnectorsController (GET /api/v1/connectors)', () => {
+  it('setiap konektor memuat deskripsi normalizer (bukan fungsinya) sesuai kontrak', () => {
+    for (const c of CONNECTORS) {
+      expect(typeof c.normalizer).toBe('string');
+      expect(c.normalizer.length).toBeGreaterThan(0);
+      expect(c.normalizer).toContain('NormalizedClosedDeal');
+    }
+  });
+
+  it('describeConnectors() mengekspos type, credentialRef, syncIntervalSec, normalizer', () => {
+    const list = describeConnectors() as Array<Record<string, unknown>>;
+    const cloud = list.find((c) => c.type === 'MT5_CLOUD') as Record<string, unknown>;
+    const stmt = list.find((c) => c.type === 'MT5_STATEMENT') as Record<string, unknown>;
+
+    expect(cloud.credentialRef).toEqual({
+      kind: 'encrypted_integration',
+      field: 'investor_password',
+      mode: 'investor-read-only',
+      algorithm: 'AES-256-GCM',
+    });
+    expect(cloud.syncIntervalSec).toBeGreaterThan(0);
+    expect(typeof cloud.normalizer).toBe('string');
+
+    expect(stmt.credentialRef).toEqual({ kind: 'none' });
+    expect(stmt.syncIntervalSec).toBe(0);
+    expect(typeof stmt.normalizer).toBe('string');
+  });
+
+  it('surface endpoint tidak pernah memuat materi rahasia (nilai, bukan nama field)', () => {
+    const json = JSON.stringify(describeConnectors());
+    expect(json).not.toMatch(/cipher|token|apikey|authorization|cookie/i);
+    expect(json).not.toMatch(/password":\s*"/); // tidak ada NILAI password
+    expect(json).toContain('investor-read-only');
+  });
+
+  it('controller list() = registry describeConnectors() (satu sumber kebenaran)', () => {
+    expect(new ConnectorsController().list()).toEqual(describeConnectors());
   });
 });

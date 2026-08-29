@@ -18,6 +18,6 @@ export function connectorTypes(): string[] {
 /** Description surface for docs/health panels — never includes secret material. */
 export function describeConnectors() {
   return CONNECTORS.map((c) =>
-    c instanceof Mt5CloudConnector || c instanceof StatementImportConnector ? c.describe() : { type: c.type, label: c.label, status: c.status, direction: c.direction, syncIntervalSec: c.syncIntervalSec }
+    c instanceof Mt5CloudConnector || c instanceof StatementImportConnector ? c.describe() : { type: c.type, label: c.label, status: c.status, direction: c.direction, syncIntervalSec: c.syncIntervalSec, credentialRef: c.credentialRef, normalizer: c.normalizer }
   );
 }
