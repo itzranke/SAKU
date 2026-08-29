@@ -12,6 +12,51 @@ import { CommandPalette } from './components/CommandPalette';
 import { ToastProvider, useToast } from './components/ToastProvider';
 import { GraphifyWealthChart } from './components/GraphifyWealthChart';
 import { ObsidianJournalModal } from './components/ObsidianJournalModal';
+import { IntegrationsSettingsModal } from './components/IntegrationsSettingsModal';
+import { SourceBadge } from './components/SourceBadge';
+import { useAccountStateQuery } from './store/integrationApi';
+
+type ConnectorOverview = {
+  enabled: boolean;
+  provider: string;
+  state?: { equity: number; currency: string; updatedAt: string } | null;
+  notice?: string;
+} | undefined;
+
+/**
+ * Honest sync pill (replaces the old hardcoded "Connected"): reads GET /trading/account-state.
+ * Empty/offline states are informative, never a red error — MT5 is one asset among many.
+ */
+function SyncPill({ connector, onManage }: { connector: ConnectorOverview; onManage: () => void }) {
+  if (!connector) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-800/60 px-2 py-0.5 font-medium text-slate-400">
+        <span className="w-2 h-2 rounded-full bg-slate-500" /> cek API
+      </span>
+    );
+  }
+  if (!connector.enabled) {
+    return (
+      <button onClick={onManage} title={connector.notice} className="inline-flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-800/60 px-2 py-0.5 font-medium text-slate-400 hover:text-slate-200">
+        <span className="w-2 h-2 rounded-full bg-slate-500" /> statement/manual
+      </button>
+    );
+  }
+  const ageSec = connector.state?.updatedAt ? Math.max(0, Math.round((Date.now() - Date.parse(connector.state.updatedAt)) / 1000)) : null;
+  const stale = ageSec === null || ageSec > 600;
+  return (
+    <button
+      onClick={onManage}
+      title={connector.state ? `Equity ${connector.state.currency} ${connector.state.equity.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : 'Konektor aktif, belum ada snapshot'}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 font-medium ${
+        stale ? 'border-amber-500/25 bg-amber-500/10 text-amber-300' : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400'
+      }`}
+    >
+      <span className={`w-2 h-2 rounded-full ${stale ? 'bg-amber-400' : 'bg-emerald-400 animate-pulse'}`} />
+      {stale ? 'butuh sync' : `${connector.provider} · ${ageSec}s`}
+    </button>
+  );
+}
 
 function DashboardContent() {
   const [baseCurrency, setBaseCurrency] = useState<'IDR' | 'USD'>('IDR');
@@ -20,6 +65,9 @@ function DashboardContent() {
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isObsidianModalOpen, setIsObsidianModalOpen] = useState(false);
+  const [isIntegrationsOpen, setIsIntegrationsOpen] = useState(false);
+  // Health of the MT5 pull connector (ADR-022). Refreshed slowly; never blocks the dashboard.
+  const { data: connector } = useAccountStateQuery(undefined, { pollingInterval: 60_000 });
 
   const { showToast } = useToast();
   const dispatch = useSakuDispatch();
@@ -73,6 +121,7 @@ function DashboardContent() {
     else if (actionId === 'import-mutasi') setIsImportModalOpen(true);
     else if (actionId === 'upgrade-pro') setIsSubscriptionModalOpen(true);
     else if (actionId === 'sonzi-health') showToast('SONZI Health Engine aktif!', 'info');
+    else if (actionId === 'integrations') setIsIntegrationsOpen(true);
   };
 
   const formatCurrency = (val: number, curr = 'IDR') => {
@@ -120,6 +169,12 @@ function DashboardContent() {
             <a href="#trading" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 text-sm transition">
               <span>⚡</span> Active Trading MT5
             </a>
+            <button
+              onClick={() => setIsIntegrationsOpen(true)}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 text-sm transition"
+            >
+              <span>🔌</span> Settings &rsaquo; Integrations
+            </button>
           </nav>
         </div>
 
@@ -141,9 +196,7 @@ function DashboardContent() {
 
           <div className="flex items-center justify-between text-xs text-slate-400">
             <span>Status Sync MT5</span>
-            <span className="inline-flex items-center gap-1.5 text-emerald-400 font-medium bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Connected
-            </span>
+            <SyncPill connector={connector} onManage={() => setIsIntegrationsOpen(true)} />
           </div>
         </div>
       </aside>
@@ -324,6 +377,7 @@ function DashboardContent() {
                     <th className="pb-3">Tanggal</th>
                     <th className="pb-3">Keterangan</th>
                     <th className="pb-3">Akun</th>
+                    <th className="pb-3">Sumber</th>
                     <th className="pb-3 text-right">Jumlah</th>
                   </tr>
                 </thead>
@@ -336,6 +390,9 @@ function DashboardContent() {
                         <span className="ml-2 text-[9px] uppercase tracking-wider text-slate-600 border border-slate-800 rounded px-1 py-0.5">{tx.type}</span>
                       </td>
                       <td className="py-3 text-xs text-slate-400">{tx.account}</td>
+                      <td className="py-3 text-xs whitespace-nowrap">
+                        <SourceBadge source={tx.source} />
+                      </td>
                       <td className={`py-3 text-right font-bold ${tx.amount > 0 ? 'text-emerald-400' : 'text-slate-200'}`}>
                         {tx.amount > 0 ? '+' : ''}{formatCurrency(tx.amount, tx.currency || 'IDR')}
                       </td>
@@ -366,6 +423,13 @@ function DashboardContent() {
         <SubscriptionModal
           isOpen={isSubscriptionModalOpen}
           onClose={() => setIsSubscriptionModalOpen(false)}
+        />
+
+        {/* Settings → Integrations (konektor MT5 read-only, ADR-022) */}
+        <IntegrationsSettingsModal
+          isOpen={isIntegrationsOpen}
+          onClose={() => setIsIntegrationsOpen(false)}
+          onNotify={(msg, kind) => showToast(msg, kind ?? 'info')}
         />
 
         {/* Command Palette (Cmd + K) Modal */}

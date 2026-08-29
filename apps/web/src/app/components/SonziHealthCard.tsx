@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useAccountStateQuery } from '../store/integrationApi';
 
 export function SonziHealthCard() {
   const [riskProfile, setRiskProfile] = useState<'CONSERVATIVE' | 'MODERATE' | 'AGGRESSIVE'>('MODERATE');
@@ -13,6 +14,19 @@ export function SonziHealthCard() {
   };
 
   const currentAllocation = allocations[riskProfile];
+
+  // MT5 equity/balance = DATA TAMPILAN (ADR-022). Snapshot read-only ini tidak pernah
+  // menulis saldo; kalau kosong, yang muncul empty state — bukan error merah.
+  const { data: connector, isError: connectorOffline } = useAccountStateQuery(undefined, {
+    pollingInterval: 60_000,
+  });
+  const snap = connector?.state ?? null;
+  const ageSec = snap?.updatedAt ? Math.max(0, Math.round((Date.now() - Date.parse(snap.updatedAt)) / 1000)) : null;
+  const emptyReason = connectorOffline
+    ? 'SAKU API tidak terjangkau'
+    : !connector?.enabled
+      ? 'Konektor MT5 mati (MT5_CLOUD_ENABLED=false) — data masuk lewat import statement'
+      : 'Belum pernah sync — tekan Sync now di Settings › Integrations';
 
   return (
     <motion.div
@@ -145,6 +159,35 @@ export function SonziHealthCard() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* MT5 snapshot strip — display only, with an honest empty state */}
+      <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          MT5 Equity (read-only)
+        </span>
+        {snap ? (
+          <>
+            <span className="font-mono text-base font-extrabold text-emerald-400">
+              {snap.currency} {snap.equity.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            </span>
+            <span className="text-xs text-slate-400">
+              Balance {snap.balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              {snap.margin != null ? ` · Margin ${snap.margin.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : ''}
+            </span>
+            <span className={`text-[10px] font-semibold ${ageSec !== null && ageSec > 600 ? 'text-amber-400' : 'text-slate-500'}`}>
+              {ageSec === null ? 'snapshot tersedia' : `${ageSec} dtk lalu`}
+            </span>
+            <span className="ml-auto text-[10px] text-slate-600">
+              {connector?.provider ? `provider: ${connector.provider}` : ''} · saldo jurnal tetap dari closed deals
+            </span>
+          </>
+        ) : (
+          <span className="text-xs text-slate-500">
+            <span className="mr-2 inline-block h-2 w-2 rounded-full bg-slate-600 align-middle" />
+            {emptyReason}
+          </span>
+        )}
       </div>
     </motion.div>
   );
