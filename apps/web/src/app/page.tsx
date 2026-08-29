@@ -1,30 +1,50 @@
 'use client';
 
 import React, { useState } from 'react';
+import TransactionModal from './components/TransactionModal';
 
 export default function SakuDashboard() {
   const [baseCurrency, setBaseCurrency] = useState<'IDR' | 'USD'>('IDR');
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Sample Aggregated State
-  const netWorthIDR = 1450230000;
-  const totalAssetsIDR = 1600000000;
+  const [netWorthIDR, setNetWorthIDR] = useState(1450230000);
+  const [totalAssetsIDR, setTotalAssetsIDR] = useState(1600000000);
   const totalDebtsIDR = 149770000;
 
-  const accounts = [
+  const [accounts, setAccounts] = useState([
     { id: '1', name: 'Bank BCA', type: 'BANK', balance: 185000000, currency: 'IDR' },
     { id: '2', name: 'Bank Mandiri', type: 'BANK', balance: 60000000, currency: 'IDR' },
     { id: '3', name: 'GoPay / OVO', type: 'EWALLET', balance: 12500000, currency: 'IDR' },
     { id: '4', name: 'Physical Cash', type: 'CASH', balance: 3000000, currency: 'IDR' },
     { id: '5', name: 'IDX Equities', type: 'INVESTMENT', balance: 450000000, currency: 'IDR' },
     { id: '6', name: 'MetaTrader 5 Forex', type: 'TRADING', balance: 25400, currency: 'USD', eqIDR: 393700000 },
-  ];
+  ]);
 
-  const recentTransactions = [
+  const [recentTransactions, setRecentTransactions] = useState([
     { id: 't1', date: '2026-08-28', description: 'Gaji Bulanan', account: 'Bank BCA', amount: 35000000, type: 'INCOME' },
     { id: 't2', date: '2026-08-28', description: 'Transfer ke MT5 Broker', account: 'Bank Mandiri', amount: -15500000, type: 'TRANSFER' },
-    { id: 't3', date: '2026-08-27', description: 'Pembayaran Tagihan Listrik', account: 'GoPay', amount: -1250000, type: 'EXPENSE' },
+    { id: 't3', date: '2026-08-27', description: 'Pembayaran Tagihan Listrik', account: 'GoPay / OVO', amount: -1250000, type: 'EXPENSE' },
     { id: 't4', date: '2026-08-26', description: 'Profit Trade EURUSD (MT5)', account: 'MetaTrader 5', amount: 480, type: 'TRADING_PROFIT', currency: 'USD' },
-  ];
+  ]);
+
+  const handleAddTransaction = (newTx: any) => {
+    setRecentTransactions((prev) => [newTx, ...prev]);
+
+    // Update account balance
+    setAccounts((prev) =>
+      prev.map((acc) => {
+        if (acc.name === newTx.account) {
+          return { ...acc, balance: acc.balance + newTx.amount };
+        }
+        return acc;
+      })
+    );
+
+    // Update Net Worth and Total Assets
+    setNetWorthIDR((prev) => prev + newTx.amount);
+    setTotalAssetsIDR((prev) => prev + newTx.amount);
+  };
 
   const formatCurrency = (val: number, curr = 'IDR') => {
     if (curr === 'USD') return `$${val.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
@@ -37,7 +57,7 @@ export default function SakuDashboard() {
       <aside className="w-64 border-r border-slate-800 bg-[#0E1322] p-5 flex flex-col justify-between">
         <div>
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white text-lg">
+            <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white text-lg shadow-lg shadow-indigo-600/30">
               S
             </div>
             <div>
@@ -107,7 +127,10 @@ export default function SakuDashboard() {
               </button>
             </div>
 
-            <button className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2 rounded-lg shadow-lg shadow-indigo-600/20 flex items-center gap-2">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-4 py-2 rounded-lg shadow-lg shadow-indigo-600/20 flex items-center gap-2 transition"
+            >
               <span>+</span> Catat Transaksi
             </button>
           </div>
@@ -206,6 +229,13 @@ export default function SakuDashboard() {
             </div>
           </div>
         </div>
+
+        {/* Modal Component */}
+        <TransactionModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onAddTransaction={handleAddTransaction}
+        />
       </main>
     </div>
   );
