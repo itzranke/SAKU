@@ -226,3 +226,55 @@ curl -s https://raw.githubusercontent.com/itzranke/SAKU/main/docs/ci/23_CI_PROPO
   `auth_sessions` persisten (fase 2 ADR-023, via `prisma db execute` + `IF NOT EXISTS`); UI web
   kirim header `X-Saku-Session` saat sudah ada halaman login sungguhan; menyalakan
   `SAKU_AUTH_ENFORCE=true` di deployment produksi saat fase multi-pemilik dimulai.
+
+## 10) Addendum sesi 2026-08-30 (bagian 3) — ADR-024 auth fase 2 TUNTAS + panduan P3 & Node24
+
+> Addendum hanya MENAMBAH; §1–§9 dipertahankan apa adanya. Semua state diverifikasi via
+> `api.github.com` sebelum ditulis. main di awal sesi = `de16450` (pasca PR #12).
+
+### 10.1) Yang tuntas sesi ini (semua via PR, CI hijau dulu baru merge)
+
+| Item | PR | Isi |
+|---|---|---|
+| P3 panduan live test | [#13](https://github.com/itzranke/SAKU/pull/13) | `docs/24_P3_METAAPI_LIVE_TEST_GUIDE.md` — browser-only: env di panel hosting, Settings → Integrations, tabel diagnosa pesan gagal, cara disconnect aman, batasan doktrin (read-only, RAW REST tanpa SDK, ⛔ CopyFactory/risk-management) |
+| ADR fase 2 | [#14](https://github.com/itzranke/SAKU/pull/14) | **ADR-024** `docs/25_AUTH_SESSION_PHASE2_ADR.md` (PROPOSED) — memperluas ADR-023, tidak membatalkan; rencana 4 PR |
+| Persistensi sesi + logout | [#15](https://github.com/itzranke/SAKU/pull/15) | `SessionStore` port + `PrismaSessionStore`; migrasi `auth_sessions` (`db execute` + `IF NOT EXISTS` + `verify.sql`); write-through + hidrasi boot; `revoke()`; `POST /auth/logout` idempoten |
+| Web login + cookie | [#16](https://github.com/itzranke/SAKU/pull/16) | route handler `/api/proxy/[...path]` (cookie HttpOnly → header `X-Saku-Session`), `/api/session` (POST/DELETE/GET), halaman `/login`, `credentials:'include'` |
+| Panduan enforce | [#17](https://github.com/itzranke/SAKU/pull/17) | `docs/26_AUTH_ENFORCE_OPERATIONS_GUIDE.md` — menyalakan `SAKU_AUTH_ENFORCE` dari browser + rollback 1 menit |
+| Node 24-ready (item C) | [#18](https://github.com/itzranke/SAKU/pull/18) | `docs/ci/27_CI_NODE24_PROPOSED.yml`, `27_RELEASE_NODE24_PROPOSED.yml`, `27_NODE24_APPLY_GUIDE.md` — **menunggu paste USER** (workflow tetap diblokir untuk agent) |
+
+- Unit test naik **99 → 105/105** (14 file); `tsc` api-core & web bersih; `nest build` + `next build` OK.
+- Kontrak api-core **tidak berubah**: identitas tetap lewat header `X-Saku-Session`; cookie murni
+  urusan lapisan web. Tanpa `DATABASE_URL`, perilaku fase 1 identik (store `null`, `hydrate()` no-op).
+
+### 10.2) Jebakan BARU yang terbukti sesi ini (jangan diulang)
+
+1. **`await hydrate()` sebelum `app.listen()` membunuh CI.** Job Postgres gagal dengan
+   `exit code 7` (curl tidak bisa konek) karena bootstrap menunggu koneksi DB. Perbaikan:
+   hidrasi dipanggil **setelah** `listen` dan **tanpa `await`** (`void … .catch(() => undefined)`).
+   Aturan umum: jangan pernah menaruh I/O jaringan yang bisa menggantung di jalur bootstrap.
+2. **`route.ts` Next.js hanya boleh mengekspor handler HTTP.** Mengekspor `SESSION_COOKIE` dari
+   `app/api/proxy/[...path]/route.ts` membuat `next build` gagal dengan
+   *"is not a valid Route export field"* (tsc & `next lint` TIDAK menangkapnya). Konstanta
+   dipindah ke `app/api/session-cookie.ts`.
+3. **Rewrite `next.config.js` tidak bisa menyuntik header.** Karena cookie HttpOnly harus
+   diterjemahkan menjadi `X-Saku-Session`, rewrite statis diganti route handler catch-all.
+   Konsekuensi yang harus dijaga: klien tetap hanya memakai path relatif `/api/proxy/*`.
+4. **Log Actions tidak dapat diunduh dari sandbox** (`gh run view --log-failed` dan
+   `.../logs` selalu gagal/redirect mati). Yang berhasil: `gh api …/jobs` untuk melihat step
+   mana yang merah, lalu `fetch_page` ke halaman job untuk membaca **Annotations** (di situlah
+   `exit code 7` terbaca). Simpan pola ini.
+
+### 10.3) Sisa backlog setelah sesi ini
+
+- **Item C (Node 24) menunggu satu aksi USER**: paste 2 file dari `docs/ci/27_*_PROPOSED.yml`
+  ke `.github/workflows/` lewat editor web (panduan: `docs/ci/27_NODE24_APPLY_GUIDE.md`).
+  Urgensinya naik: runner sudah memaksa Node 24 dan **Node 20 dihapus dari runner musim gugur
+  2026** — setelah itu action lama GAGAL, bukan sekadar warning.
+- **P3 live test MetaApi** tetap user-driven (butuh `METAAPI_TOKEN` di deployment user; **jangan
+  pernah** lewat chat/repo). Panduan sudah siap di `docs/24`.
+- **Menyalakan `SAKU_AUTH_ENFORCE=true`** = keputusan produk user, prasyaratnya sudah lengkap
+  (halaman login + sesi persisten). Panduan + rollback di `docs/26`.
+- **Fase multi-pemilik** (owner selain `user-local`, rumah tangga) belum ada dan **butuh ADR baru**.
+  Hari ini setiap sesi sah tetap menghasilkan owner `user-local`.
+- Kanal OTP masih jujur-mock (kode di log server) — mengganti kanal tidak boleh menyentuh desain sesi.
