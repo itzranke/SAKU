@@ -9,10 +9,15 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors({ origin: '*' });
   app.setGlobalPrefix('api/v1');
-  // ADR-024 fase 2: pulihkan sesi aktif dari `auth_sessions` (no-op tanpa DATABASE_URL).
-  await app.get(SessionService).hydrate();
   const port = process.env.PORT || 4000;
   await app.listen(port);
   console.log(`🚀 SAKU Core API running at http://localhost:${port}/api/v1`);
+  // ADR-024 fase 2: pulihkan sesi aktif dari `auth_sessions`. SENGAJA setelah listen dan
+  // TIDAK di-await: DB yang lambat/mati tidak boleh menunda kesiapan HTTP (CI pernah gagal
+  // curl exit 7 karena hidrasi memblokir bootstrap). Sesi in-memory tetap melayani sementara.
+  void app
+    .get(SessionService)
+    .hydrate()
+    .catch(() => undefined);
 }
 bootstrap();
