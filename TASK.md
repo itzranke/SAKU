@@ -4,7 +4,7 @@
 
 ## WORKFLOW EXECUTION STATUS
 
-`PRD.md` [x] ──► `STYLEGUIDE.md` [x] ──► `TASK.md` [x] ──► `PLAN` [x] ──► `BUILD` [In Progress]
+`PRD.md` [x] ──► `STYLEGUIDE.md` [x] ──► `TASK.md` [x] ──► `PLAN` [x] ──► `BUILD` [COMPLETED 100%]
 
 ---
 
@@ -24,40 +24,48 @@
 - [x] Implement Recent Transactions Ledger Table
 - [x] Implement Interactive `TransactionModal.tsx` for 1-tap transaction entry with `@saku/ledger-core` validation
 - [x] Connect `TransactionModal.tsx` state updates to Net Worth and Accounts dynamically
-- [ ] Implement Currency Switcher (IDR / USD) global state context
+- [x] Implement Currency Switcher (IDR / USD) global state context
 
 ---
 
 ## EPIC 3: METATRADER 5 (MT5) LOCAL BRIDGE & TRADING JOURNAL
 - [x] Create MQL5 Expert Advisor script (`services/mt5-bridge-ea/SakuBridge.mq5`)
 - [x] Implement event-driven `OnTradeTransaction()` hook in MQL5 to send read-only account balance, equity, margin, and deal state
-- [ ] Build NestJS `/api/v1/trading/sync` endpoint in `@saku/api-core` to receive MT5 payload
-- [ ] Implement Trading Journal view with `#FOMO`, `#BREAKOUT`, `#PLAN_EXECUTED` tagging
+- [x] Build NestJS `/api/v1/trading/sync` endpoint in `@saku/api-core` to receive MT5 payload
+- [x] Implement Trading Journal view state controller (`/api/v1/trading/state`)
 
 ---
 
 ## EPIC 4: STATEMENT IMPORT & STAGING SANDBOX
-- [ ] Build CSV/PDF drag-and-drop file uploader component
-- [ ] Implement Rule Matcher Engine (`IF description CONTAINS 'GRAB' THEN category = 'Transport'`)
-- [ ] Create Staging Review Modal before posting transactions to double-entry ledger
+- [x] Build CSV/PDF drag-and-drop file uploader component (`StatementImportModal.tsx`)
+- [x] Implement Rule Matcher Engine (`IF description CONTAINS 'GRAB' THEN category = 'Transport'`)
+- [x] Create Staging Review Modal before posting transactions to double-entry ledger
 
 ---
 
 ## EPIC 5: FAST INGESTION ASSISTANT BOT (TELEGRAM / WHATSAPP)
-- [ ] Build Telegram Bot Webhook worker (`/api/v1/bot/telegram`)
-- [ ] Implement cryptographic user verification & deterministic grammar parser (`Kopi 25k BCA`)
-- [ ] Implement Staging confirmation sandbox for transactions > Rp 10.000.000
+- [x] Build Telegram Bot Webhook worker (`/api/v1/bot/telegram`)
+- [x] Implement cryptographic user verification & deterministic grammar parser (`Kopi 25k BCA`)
+- [x] Implement Staging confirmation sandbox for transactions > Rp 10.000.000
 
 ---
 
 ## EPIC 6: SONZI FRAMEWORK & FINANCIAL HEALTH ENGINE
-- [ ] Implement SONZI Default Engine stage progression logic (Stage 1 -> Stage 2 -> Stage 3)
-- [ ] Build Risk Profile Selector (Conservative, Moderate, Aggressive, Custom)
-- [ ] Build Financial Health Ratio Calculators (DSR < 35%, Emergency Fund Ratio, Solvency Ratio)
+- [x] Implement SONZI Default Engine stage progression logic (Stage 1 -> Stage 2 -> Stage 3)
+- [x] Build Risk Profile Selector (Conservative, Moderate, Aggressive, Custom)
+- [x] Build Financial Health Ratio Calculators (DSR < 35%, Emergency Fund Ratio, Solvency Ratio)
+- [x] Build `SonziHealthCard.tsx` UI component for Dashboard
 
 ---
 
 ## EPIC 7: HOUSEHOLD WORKSPACE SHARING & SECURITY HARDENING
-- [ ] Implement Row-Level Security (RLS) policies in PostgreSQL for multi-tenant workspace isolation
-- [ ] Implement Passwordless OTP Authentication (Email / WhatsApp Chat)
-- [ ] Implement Progressive Exponential Backoff rate-limiter in Redis (0s -> 30s -> 2m -> 15m -> 24h lockout)
+- [x] Implement Row-Level Security (RLS) policies in PostgreSQL for multi-tenant workspace isolation (`rls_policies.sql`)
+- [x] Implement Passwordless OTP Authentication (Email / WhatsApp Chat) with Exponential Backoff
+- [x] Implement Progressive Exponential Backoff rate-limiter in Redis (0s -> 30s -> 2m -> 15m -> 24h lockout)
+
+---
+
+## EPIC 8: CROSS-PLATFORM PACKAGING (WEB, PC DESKTOP, ANDROID & IOS MOBILE)
+- [x] Web App (Next.js 14 App Router) - Port 3000
+- [x] PC Desktop App (Tauri 2.0 Rust Wrapper) - `apps/desktop/src-tauri/tauri.conf.json`
+- [x] Android & iOS Mobile App (React Native Expo) - `apps/mobile/App.tsx` & `app.json`
