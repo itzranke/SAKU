@@ -15,7 +15,7 @@ perlu diulang per milestone:
 | `lint-and-build` | Typecheck api-core, web, **dan @saku/database** | M1 |
 | `lint-and-build` | Unit test ledger-core + **api-core (vitest)** | M1–M3 |
 | `db-persistence-smoke` | jurnal survive restart API | sudah ada (v1.1) |
-| `db-persistence-smoke` | **M1**: apply `migration.sql` + `verify.sql` → `processed_deals` ada di postgres:16 | M1 |
+| `db-persistence-smoke` | **M1–M3**: apply `migration.sql` + `verify.sql` **semua folder** `prisma/migrations/2*/` → `processed_deals`, `integration_accounts`, `account_state_cache` ter-verify di postgres:16 | M1–M3 |
 | `db-persistence-smoke` | **M1**: payload `/trading/sync` sama 2× → `journalized:2` lalu `journalized:0, skipped:2`; restart API → tetap 0 jurnal ganda | M1 |
 | `db-persistence-smoke` | **M2**: hanya investor password (master → 400), tidak ada kredensial di respons/log, `credentialCipher` di DB = ciphertext `iv:tag:cipher` | M2 |
 | `db-persistence-smoke` | **M3**: `MT5_CLOUD_ENABLED=false` → provider `null`, nol outbound call; `MT5_PROVIDER=mock` → snapshot cache + 3 jurnal | M3 |
@@ -28,7 +28,7 @@ perlu diulang per milestone:
 4. ✅ Kembali ke editor `ci.yml`: **select-all di dalam kotak kode → hapus → paste** konten tadi. (Posisi baris tidak boleh digeser; ini penggantian file, bukan penambahan.)
 5. ✅ **Commit changes** → pesan: `ci: ADR-022 gate — processed_deals idempotency, credential redaction, provider mock` → **Commit directly to the main branch**.
 6. ✅ Buka <https://github.com/itzranke/SAKU/actions> → tunggu "SAKU CI Pipeline" hijau pada commit itu.
-7. ✅ Buka PR milestone → tab **Checks**: step `M1 — …` harus hijau. Kalau merah, salin **nama step** + 5 baris error terakhir ke chat — agent yang perbaiki (tidak perlu aksi terminal di laptop).
+7. ✅ Buka PR milestone → tab **Checks**: step `M1/M2/M3 — …` (apply migration SQL) harus hijau. Kalau merah, salin **nama step** + 5 baris error terakhir ke chat — agent yang perbaiki (tidak perlu aksi terminal di laptop).
 
 ## ❌ Yang tidak perlu (dan tidak boleh) kamu lakukan
 
