@@ -114,6 +114,35 @@ model LedgerEntry {
   @@map("ledger_entries")
 }
 
+/// MT5 (and future) connector credentials, stored ENCRYPTED AT REST (AES-256-GCM).
+/// Single-user phase: `ownerId` is the constant "user-local". Read-only doctrine:
+/// only an INVESTOR password may ever be persisted (ADR-022), and the ciphertext is
+/// never returned by the API. Deleting the row is the disconnect flow (rotate the
+/// investor password at the broker afterwards).
+enum IntegrationType {
+  MT5_CLOUD
+  MT5_STATEMENT
+}
+
+model IntegrationAccount {
+  id               String          @id @default(uuid())
+  ownerId            String        @default("user-local")
+  type               IntegrationType
+  label              String
+  login              String
+  server             String
+  port               Int?
+  enabled            Boolean       @default(true)
+  credentialCipher   String // "iv:tag:ciphertext" (base64) — never serialized out of the API
+  vendorAccountId    String? // MetaApi accountId, once provisioned
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  @@unique([ownerId, type, login])
+  @@index([ownerId, enabled])
+  @@map("integration_accounts")
+}
+
 model Trade {
   id          String    @id @default(uuid())
   workspaceId String
