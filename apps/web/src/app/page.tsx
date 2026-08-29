@@ -6,12 +6,17 @@ import TransactionModal from './components/TransactionModal';
 import { StatementImportModal } from './components/StatementImportModal';
 import { SonziHealthCard } from './components/SonziHealthCard';
 import { SubscriptionModal } from './components/SubscriptionModal';
+import { CommandPalette } from './components/CommandPalette';
+import { ToastProvider, useToast } from './components/ToastProvider';
 
-export default function SakuDashboard() {
+function DashboardContent() {
   const [baseCurrency, setBaseCurrency] = useState<'IDR' | 'USD'>('IDR');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+
+  const { showToast } = useToast();
 
   // Sample Aggregated State
   const [netWorthIDR, setNetWorthIDR] = useState(1450230000);
@@ -37,7 +42,6 @@ export default function SakuDashboard() {
   const handleAddTransaction = (newTx: any) => {
     setRecentTransactions((prev) => [newTx, ...prev]);
 
-    // Update account balance
     setAccounts((prev) =>
       prev.map((acc) => {
         if (acc.name === newTx.account) {
@@ -47,9 +51,9 @@ export default function SakuDashboard() {
       })
     );
 
-    // Update Net Worth and Total Assets
     setNetWorthIDR((prev) => prev + newTx.amount);
     setTotalAssetsIDR((prev) => prev + newTx.amount);
+    showToast(`Transaksi "${newTx.description}" berhasil dicatat ke Ledger!`, 'success');
   };
 
   const handlePostStagingToLedger = (count: number, totalSum: number) => {
@@ -62,6 +66,15 @@ export default function SakuDashboard() {
       type: 'EXPENSE',
     };
     handleAddTransaction(newTx);
+    showToast(`Batch Import (${count} mutasi) disetujui & diposting ke Double-Entry Ledger!`, 'success');
+  };
+
+  const handleCommandPaletteAction = (actionId: string) => {
+    if (actionId === 'OPEN') setIsCommandPaletteOpen(true);
+    else if (actionId === 'add-tx') setIsModalOpen(true);
+    else if (actionId === 'import-mutasi') setIsImportModalOpen(true);
+    else if (actionId === 'upgrade-pro') setIsSubscriptionModalOpen(true);
+    else if (actionId === 'sonzi-health') showToast('SONZI Health Engine aktif!', 'info');
   };
 
   const formatCurrency = (val: number, curr = 'IDR') => {
@@ -110,6 +123,14 @@ export default function SakuDashboard() {
         </div>
 
         <div className="border-t border-slate-800 pt-4 space-y-3">
+          <button
+            onClick={() => setIsCommandPaletteOpen(true)}
+            className="w-full rounded-xl border border-slate-800 bg-slate-900/80 p-2 text-xs font-mono text-slate-400 hover:text-white hover:border-slate-700 transition flex items-center justify-between"
+          >
+            <span>🔍 Cari...</span>
+            <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px]">Cmd+K</span>
+          </button>
+
           <button
             onClick={() => setIsSubscriptionModalOpen(true)}
             className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-emerald-600 p-2.5 text-xs font-bold text-white shadow-lg hover:brightness-110 transition-all text-center flex items-center justify-center gap-1.5"
@@ -310,7 +331,22 @@ export default function SakuDashboard() {
           isOpen={isSubscriptionModalOpen}
           onClose={() => setIsSubscriptionModalOpen(false)}
         />
+
+        {/* Command Palette (Cmd + K) Modal */}
+        <CommandPalette
+          isOpen={isCommandPaletteOpen}
+          onClose={() => setIsCommandPaletteOpen(false)}
+          onSelectAction={handleCommandPaletteAction}
+        />
       </main>
     </div>
+  );
+}
+
+export default function SakuDashboard() {
+  return (
+    <ToastProvider>
+      <DashboardContent />
+    </ToastProvider>
   );
 }
