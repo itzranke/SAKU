@@ -26,21 +26,22 @@ export function computeAccountBalances(
   accounts: AccountDef[],
   journals: JournalRecord[]
 ): AccountBalance[] {
-  const byCode = new Map(accounts.map((a) => [a.code, a]));
-  const acc = new Map<string, AccountBalance>();
+  // Plain-object accumulator (no Map iteration) so the engine stays compatible
+  // with every consumer target, including apps/web's default TS target.
+  const acc: Record<string, AccountBalance> = {};
   for (const a of accounts) {
-    acc.set(a.code, {
+    acc[a.code] = {
       code: a.code,
       name: a.name,
       type: a.type,
       currency: a.currency,
       balanceNative: 0,
       balanceBaseIDR: 0,
-    });
+    };
   }
   for (const j of journals) {
     for (const e of j.entries) {
-      const b = acc.get(e.accountCode);
+      const b = acc[e.accountCode];
       if (!b) continue; // unknown leg account -> ignored by derivation, but journal stays immutable
       b.balanceBaseIDR += e.amount * (e.exchangeRate ?? 1);
       if (e.currency.toUpperCase() === b.currency.toUpperCase()) {
@@ -50,12 +51,12 @@ export function computeAccountBalances(
     }
   }
   const round = (n: number) => Number(n.toFixed(4));
-  for (const b of acc.values()) {
+  for (const key of Object.keys(acc)) {
+    const b = acc[key];
     b.balanceNative = round(b.balanceNative);
     b.balanceBaseIDR = round(b.balanceBaseIDR);
   }
-  void byCode;
-  return [...acc.values()];
+  return Object.keys(acc).map((k) => acc[k]);
 }
 
 export interface JournalDisplayRow {

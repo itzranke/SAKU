@@ -8,15 +8,23 @@ interface TransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAddTransaction: (newTx: any) => void;
+  /** Fund accounts from the ledger store (name/currency). Falls back to defaults when absent. */
+  accounts?: { name: string; currency: string }[];
 }
 
-export default function TransactionModal({ isOpen, onClose, onAddTransaction }: TransactionModalProps) {
+const FALLBACK_ACCOUNTS = ['Bank BCA', 'Bank Mandiri', 'GoPay', 'OVO', 'Physical Cash Wallet', 'IDX Equities', 'MetaTrader 5 Forex'];
+
+export default function TransactionModal({ isOpen, onClose, onAddTransaction, accounts }: TransactionModalProps) {
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<'INCOME' | 'EXPENSE' | 'TRANSFER'>('EXPENSE');
   const [account, setAccount] = useState('Bank BCA');
+  const [targetAccount, setTargetAccount] = useState('Bank Mandiri');
   const [category, setCategory] = useState('Makanan & Minuman');
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  const accountNames = (accounts && accounts.length > 0 ? accounts.map((a) => a.name) : FALLBACK_ACCOUNTS)
+    .filter((n) => n !== 'BCA Credit Card');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,8 +51,12 @@ export default function TransactionModal({ isOpen, onClose, onAddTransaction }: 
       ];
     } else {
       // TRANSFER
+      if (targetAccount === account) {
+        setValidationError('Akun sumber dan tujuan transfer tidak boleh sama.');
+        return;
+      }
       entries = [
-        { accountId: 'Bank Mandiri', amount: numericAmount, currency: 'IDR' },
+        { accountId: targetAccount, amount: numericAmount, currency: 'IDR' },
         { accountId: account, amount: -numericAmount, currency: 'IDR' },
       ];
     }
@@ -60,6 +72,8 @@ export default function TransactionModal({ isOpen, onClose, onAddTransaction }: 
       date: new Date().toISOString().split('T')[0],
       description,
       account,
+      targetAccount: type === 'TRANSFER' ? targetAccount : undefined,
+      category: type !== 'TRANSFER' ? category : undefined,
       amount: type === 'EXPENSE' ? -numericAmount : numericAmount,
       type,
     });
@@ -183,12 +197,31 @@ export default function TransactionModal({ isOpen, onClose, onAddTransaction }: 
                   onChange={(e) => setAccount(e.target.value)}
                   className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 transition"
                 >
-                  <option value="Bank BCA">Bank BCA</option>
-                  <option value="Bank Mandiri">Bank Mandiri</option>
-                  <option value="GoPay / OVO">GoPay / OVO</option>
-                  <option value="Physical Cash">Physical Cash Wallet</option>
+                  {accountNames.map((name) => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
                 </select>
               </div>
+
+              {/* Transfer destination */}
+              {type === 'TRANSFER' && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+                >
+                  <label className="block text-xs font-semibold text-slate-400 mb-1">Akun Tujuan Transfer</label>
+                  <select
+                    value={targetAccount}
+                    onChange={(e) => setTargetAccount(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 transition"
+                  >
+                    {accountNames.map((name) => (
+                      <option key={name} value={name}>{name}</option>
+                    ))}
+                  </select>
+                </motion.div>
+              )}
 
               {/* Category */}
               {type !== 'TRANSFER' && (
