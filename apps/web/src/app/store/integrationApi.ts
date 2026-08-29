@@ -87,7 +87,13 @@ export interface IntegrationDraft {
 // so this works in preview/deploy without leaking a localhost host into client code.
 export const integrationApi = createApi({
   reducerPath: 'integrationApi',
-  baseQuery: fetchBaseQuery({ baseUrl: '/api/proxy', headers: { 'Content-Type': 'application/json' } }),
+    // ADR-024: identitas dibawa cookie HttpOnly `saku_session` (di-set oleh /api/session dan
+  // diterjemahkan proxy menjadi header X-Saku-Session). Klien tidak pernah memegang nilainya.
+  baseQuery: fetchBaseQuery({
+    baseUrl: '/api/proxy',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+  }),
   tagTypes: ['Integrations', 'AccountState'],
   endpoints: (builder) => ({
     listIntegrations: builder.query<{ integrations: PublicIntegration[]; persistence: 'postgres' | 'memory' }, void>({
