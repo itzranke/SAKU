@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",
+    "@saku/database": "workspace:*",
     "@saku/ledger-core": "workspace:*",
     "@nestjs/core": "^10.3.0",
     "@nestjs/platform-express": "^10.3.0",

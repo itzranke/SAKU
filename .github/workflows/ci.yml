@@ -31,5 +31,11 @@ jobs:
       - name: Lint Codebase
         run: pnpm lint
 
-      - name: Build Packages & Apps
-        run: pnpm build
+      - name: Typecheck (ledger engine is a build-order dependency)
+        run: |
+          pnpm --filter @saku/ledger-core build
+          pnpm --filter @saku/api-core exec tsc --noEmit
+          pnpm --filter @saku/web exec tsc --noEmit
+
+      - name: Build Core Packages & Web (Tauri/EAS bundles live in release-builds.yml)
+        run: pnpm turbo run build --filter=@saku/ledger-core --filter=@saku/api-core --filter=@saku/web

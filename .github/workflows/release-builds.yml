@@ -31,6 +31,9 @@ jobs:
       - name: Run Double-Entry Ledger Vitest Suite
         run: pnpm --filter @saku/ledger-core test
 
+      - name: Build Ledger Engine (resolves api-core types)
+        run: pnpm --filter @saku/ledger-core build
+
       - name: Typecheck API Core & Web App
         run: |
           pnpm --filter @saku/api-core exec tsc --noEmit
