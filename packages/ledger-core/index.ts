@@ -1,6 +1,11 @@
 /**
  * SAKU Immutable Double-Entry Ledger Core
  * Enforces: Sum(Debits * Rate) - Sum(Credits * Rate) === 0
+ *
+ * PRINCIPLES (hard rules for every consumer — api-core, apps/web, MT5 bridge):
+ *  1. Saldo TIDAK PERNAH diedit langsung. Saldo adalah hasil derivasi dari jurnal debit/kredit.
+ *  2. Jurnal bersifat APPEND-ONLY dan tidak seimbang = ditolak (lihat validateJournalEntries).
+ *  3. Semua leg memakai nilai dasar (base): amount * exchangeRate. Base currency workspace: IDR.
  */
 
 export interface LedgerEntryInput {
@@ -58,3 +63,81 @@ export function validateJournalEntries(entries: LedgerEntryInput[]): JournalVali
     error: isValid ? undefined : `Unbalanced Journal Entry: Debits (${totalDebits}) != Credits (${totalCredits}). Delta: ${delta}`,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Shared domain types for the whole SAKU monorepo (api-core, web, database).
+// Keep these types dependency-free: this package must stay pure & portable.
+// ---------------------------------------------------------------------------
+
+export type AccountType =
+  | 'BANK'
+  | 'EWALLET'
+  | 'CASH'
+  | 'CREDIT_CARD'
+  | 'INVESTMENT'
+  | 'TRADING'
+  | 'OWNERS_EQUITY'
+  | 'INCOME'
+  | 'EXPENSE';
+
+export type SourceType =
+  | 'MANUAL'
+  | 'STATEMENT_IMPORT'
+  | 'MT5_SYNC'
+  | 'BOT_CAPTURE'
+  | 'RECONCILIATION';
+
+export type TransactionType = 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'TRADING_PROFIT';
+
+export interface AccountDef {
+  code: string;
+  name: string;
+  type: AccountType;
+  currency: string;
+  isActive?: boolean;
+}
+
+export interface JournalEntryRecord {
+  accountCode: string;
+  amount: number; // signed, positive = debit
+  currency: string;
+  exchangeRate: number;
+}
+
+export interface JournalRecord {
+  id: string;
+  postedAt: string; // ISO timestamp (append-only)
+  date: string; // YYYY-MM-MM business date
+  description: string;
+  source: SourceType;
+  txType?: TransactionType;
+  category?: string;
+  entries: JournalEntryRecord[];
+}
+
+/** Standard chart-of-accounts codes used by all SAKU seeds & mappers. */
+export const COA = {
+  EQUITY: '3000', // Owner's Equity (opening balances land here)
+  INCOME: '4000', // General income (salary, gifts, etc.)
+  TRADING_INCOME: '4100', // Realized trading profit (MT5/broker)
+  EXPENSE: '5000', // General expense bucket
+} as const;
+
+export const ASSET_ACCOUNT_TYPES: ReadonlySet<AccountType> = new Set<AccountType>([
+  'BANK',
+  'EWALLET',
+  'CASH',
+  'INVESTMENT',
+  'TRADING',
+]);
+
+export const LIABILITY_ACCOUNT_TYPES: ReadonlySet<AccountType> = new Set<AccountType>(['CREDIT_CARD']);
+
+export const PNL_ACCOUNT_TYPES: ReadonlySet<AccountType> = new Set<AccountType>([
+  'OWNERS_EQUITY',
+  'INCOME',
+  'EXPENSE',
+]);
+
+export * from './journal-mapping';
+export * from './balances';
