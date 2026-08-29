@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { validateJournalEntries, LedgerEntryInput } from '@saku/ledger-core';
 
 interface TransactionModalProps {
@@ -17,8 +18,6 @@ export default function TransactionModal({ isOpen, onClose, onAddTransaction }: 
   const [category, setCategory] = useState('Makanan & Minuman');
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  if (!isOpen) return null;
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setValidationError(null);
@@ -34,13 +33,13 @@ export default function TransactionModal({ isOpen, onClose, onAddTransaction }: 
 
     if (type === 'EXPENSE') {
       entries = [
-        { accountId: category, amount: numericAmount, currency: 'IDR' }, // Debit: Expense
-        { accountId: account, amount: -numericAmount, currency: 'IDR' },  // Credit: Asset decreases
+        { accountId: category, amount: numericAmount, currency: 'IDR' },
+        { accountId: account, amount: -numericAmount, currency: 'IDR' },
       ];
     } else if (type === 'INCOME') {
       entries = [
-        { accountId: account, amount: numericAmount, currency: 'IDR' },   // Debit: Asset increases
-        { accountId: category, amount: -numericAmount, currency: 'IDR' }, // Credit: Income
+        { accountId: account, amount: numericAmount, currency: 'IDR' },
+        { accountId: category, amount: -numericAmount, currency: 'IDR' },
       ];
     } else {
       // TRANSFER
@@ -72,133 +71,165 @@ export default function TransactionModal({ isOpen, onClose, onAddTransaction }: 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="w-full max-w-md bg-[#111827] border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-          <h3 className="text-lg font-bold text-white">Tambah Transaksi Baru</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-white font-bold text-lg">
-            ✕
-          </button>
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop Blur */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-black/70 backdrop-blur-md"
+          />
+
+          {/* Modal Container with Emil Kowalski Spring Physics */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+            className="relative z-10 w-full max-w-md bg-[#111827] border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5"
+          >
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-lg font-bold text-white tracking-wide">Tambah Transaksi Baru</h3>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={onClose}
+                className="text-slate-400 hover:text-white font-bold text-lg p-1"
+              >
+                ✕
+              </motion.button>
+            </div>
+
+            {validationError && (
+              <motion.div
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs p-3 rounded-xl font-medium"
+              >
+                {validationError}
+              </motion.div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Transaction Type Selector */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1.5">Jenis Transaksi</label>
+                <div className="grid grid-cols-3 gap-2 bg-slate-900/80 p-1 rounded-xl border border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setType('EXPENSE')}
+                    className={`py-2 text-xs font-bold rounded-lg transition-all ${
+                      type === 'EXPENSE' ? 'bg-rose-600 text-white shadow-md shadow-rose-600/20' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Pengeluaran
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setType('INCOME')}
+                    className={`py-2 text-xs font-bold rounded-lg transition-all ${
+                      type === 'INCOME' ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Pemasukan
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setType('TRANSFER')}
+                    className={`py-2 text-xs font-bold rounded-lg transition-all ${
+                      type === 'TRANSFER' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Transfer
+                  </button>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1">Keterangan Transaksi</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: Kopi, Pembelian Saham, Gaji"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 transition"
+                />
+              </div>
+
+              {/* Amount */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1">Jumlah (IDR)</label>
+                <input
+                  type="number"
+                  required
+                  placeholder="100000"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 font-bold focus:outline-none focus:border-indigo-500 transition"
+                />
+              </div>
+
+              {/* Account */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1">Sumber Akun / Wallet</label>
+                <select
+                  value={account}
+                  onChange={(e) => setAccount(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 transition"
+                >
+                  <option value="Bank BCA">Bank BCA</option>
+                  <option value="Bank Mandiri">Bank Mandiri</option>
+                  <option value="GoPay / OVO">GoPay / OVO</option>
+                  <option value="Physical Cash">Physical Cash Wallet</option>
+                </select>
+              </div>
+
+              {/* Category */}
+              {type !== 'TRANSFER' && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1">Kategori</label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 transition"
+                  >
+                    <option value="Makanan & Minuman">Makanan & Minuman</option>
+                    <option value="Transportasi">Transportasi</option>
+                    <option value="Tagihan & Utilitas">Tagihan & Utilitas</option>
+                    <option value="Gaji & Bonus">Gaji & Bonus</option>
+                    <option value="Hasil Investasi">Hasil Investasi / Dividen</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white transition"
+                >
+                  Batal
+                </button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="submit"
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-lg shadow-indigo-600/25 transition"
+                >
+                  Simpan ke Ledger
+                </motion.button>
+              </div>
+            </form>
+          </motion.div>
         </div>
-
-        {validationError && (
-          <div className="bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs p-3 rounded-lg">
-            {validationError}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Transaction Type Selector */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 mb-1">Jenis Transaksi</label>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => setType('EXPENSE')}
-                className={`py-2 text-xs font-bold rounded-lg transition ${
-                  type === 'EXPENSE' ? 'bg-rose-600 text-white' : 'bg-slate-900 text-slate-400 hover:bg-slate-800'
-                }`}
-              >
-                Pengeluaran
-              </button>
-              <button
-                type="button"
-                onClick={() => setType('INCOME')}
-                className={`py-2 text-xs font-bold rounded-lg transition ${
-                  type === 'INCOME' ? 'bg-emerald-600 text-white' : 'bg-slate-900 text-slate-400 hover:bg-slate-800'
-                }`}
-              >
-                Pemasukan
-              </button>
-              <button
-                type="button"
-                onClick={() => setType('TRANSFER')}
-                className={`py-2 text-xs font-bold rounded-lg transition ${
-                  type === 'TRANSFER' ? 'bg-indigo-600 text-white' : 'bg-slate-900 text-slate-400 hover:bg-slate-800'
-                }`}
-              >
-                Transfer
-              </button>
-            </div>
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 mb-1">Keterangan Transaksi</label>
-            <input
-              type="text"
-              required
-              placeholder="Contoh: Kopi, Pembelian Saham, Gaji"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
-            />
-          </div>
-
-          {/* Amount */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 mb-1">Jumlah (IDR)</label>
-            <input
-              type="number"
-              required
-              placeholder="100000"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-100 font-bold focus:outline-none focus:border-indigo-500"
-            />
-          </div>
-
-          {/* Account */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 mb-1">Sumber Akun / Wallet</label>
-            <select
-              value={account}
-              onChange={(e) => setAccount(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
-            >
-              <option value="Bank BCA">Bank BCA</option>
-              <option value="Bank Mandiri">Bank Mandiri</option>
-              <option value="GoPay / OVO">GoPay / OVO</option>
-              <option value="Physical Cash">Physical Cash Wallet</option>
-            </select>
-          </div>
-
-          {/* Category */}
-          {type !== 'TRANSFER' && (
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">Kategori</label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
-              >
-                <option value="Makanan & Minuman">Makanan & Minuman</option>
-                <option value="Transportasi">Transportasi</option>
-                <option value="Tagihan & Utilitas">Tagihan & Utilitas</option>
-                <option value="Gaji & Bonus">Gaji & Bonus</option>
-                <option value="Hasil Investasi">Hasil Investasi / Dividen</option>
-              </select>
-            </div>
-          )}
-
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-4 py-2 rounded-lg shadow-lg shadow-indigo-600/20"
-            >
-              Simpan ke Ledger
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+      )}
+    </AnimatePresence>
   );
 }

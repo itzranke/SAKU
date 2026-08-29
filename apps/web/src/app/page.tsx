@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import TransactionModal from './components/TransactionModal';
 
 export default function SakuDashboard() {
@@ -57,9 +58,12 @@ export default function SakuDashboard() {
       <aside className="w-64 border-r border-slate-800 bg-[#0E1322] p-5 flex flex-col justify-between">
         <div>
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white text-lg shadow-lg shadow-indigo-600/30">
+            <motion.div
+              whileHover={{ scale: 1.05, rotate: 5 }}
+              className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white text-lg shadow-lg shadow-indigo-600/30"
+            >
               S
-            </div>
+            </motion.div>
             <div>
               <h1 className="font-bold text-lg tracking-wide text-white">SAKU</h1>
               <p className="text-xs text-slate-400">Financial OS v1.0</p>
@@ -67,22 +71,22 @@ export default function SakuDashboard() {
           </div>
 
           <nav className="space-y-1">
-            <a href="#dashboard" className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-indigo-600/10 text-indigo-400 font-medium text-sm">
+            <a href="#dashboard" className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-indigo-600/10 text-indigo-400 font-medium text-sm border border-indigo-500/20">
               <span>📊</span> Dashboard
             </a>
-            <a href="#accounts" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 text-sm">
+            <a href="#accounts" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 text-sm transition">
               <span>🏦</span> Rekening & Wallet
             </a>
-            <a href="#ledger" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 text-sm">
+            <a href="#ledger" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 text-sm transition">
               <span>📖</span> Jurnal Transaksi
             </a>
-            <a href="#investments" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 text-sm">
+            <a href="#investments" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 text-sm transition">
               <span>📈</span> Portofolio Investasi
             </a>
-            <a href="#trading" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 text-sm">
+            <a href="#trading" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 text-sm transition">
               <span>⚡</span> Active Trading MT5
             </a>
-            <a href="#reports" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 text-sm">
+            <a href="#reports" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 text-sm transition">
               <span>📑</span> Laporan Laba/Rugi
             </a>
           </nav>
@@ -91,7 +95,7 @@ export default function SakuDashboard() {
         <div className="border-t border-slate-800 pt-4">
           <div className="flex items-center justify-between text-xs text-slate-400">
             <span>Status Sync MT5</span>
-            <span className="inline-flex items-center gap-1 text-emerald-400 font-medium">
+            <span className="inline-flex items-center gap-1.5 text-emerald-400 font-medium bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Connected
             </span>
           </div>
@@ -103,86 +107,107 @@ export default function SakuDashboard() {
         {/* Top Header */}
         <header className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-white">Ringkasan Keuangan</h2>
+            <h2 className="text-2xl font-bold text-white tracking-wide">Ringkasan Keuangan</h2>
             <p className="text-sm text-slate-400">Sumber kebenaran tunggal untuk kekayaan & aktivitas trading Anda.</p>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="bg-slate-900 border border-slate-800 rounded-lg p-1 flex items-center text-xs">
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-1 flex items-center text-xs">
               <button
                 onClick={() => setBaseCurrency('IDR')}
-                className={`px-3 py-1.5 rounded-md font-medium transition ${
-                  baseCurrency === 'IDR' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
+                className={`px-3 py-1.5 rounded-lg font-medium transition ${
+                  baseCurrency === 'IDR' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20' : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
                 IDR
               </button>
               <button
                 onClick={() => setBaseCurrency('USD')}
-                className={`px-3 py-1.5 rounded-md font-medium transition ${
-                  baseCurrency === 'USD' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
+                className={`px-3 py-1.5 rounded-lg font-medium transition ${
+                  baseCurrency === 'USD' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20' : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
                 USD
               </button>
             </div>
 
-            <button
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
               onClick={() => setIsModalOpen(true)}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-4 py-2 rounded-lg shadow-lg shadow-indigo-600/20 flex items-center gap-2 transition"
+              className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-4 py-2.5 rounded-xl shadow-lg shadow-indigo-600/25 flex items-center gap-2 transition"
             >
               <span>+</span> Catat Transaksi
-            </button>
+            </motion.button>
           </div>
         </header>
 
-        {/* Hero Cards Grid */}
+        {/* Hero Cards Grid with Framer Motion Stagger */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          <div className="bg-[#111827] border border-slate-800/80 rounded-2xl p-6 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+            className="bg-[#111827] border border-slate-800 rounded-2xl p-6 relative overflow-hidden group hover:border-indigo-500/50 transition-all duration-300"
+          >
+            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none group-hover:bg-indigo-500/20 transition-all"></div>
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Net Worth</p>
-            <h3 className="text-3xl font-extrabold text-white mt-2">
+            <h3 className="text-3xl font-extrabold text-white mt-2 tracking-tight">
               {formatCurrency(baseCurrency === 'IDR' ? netWorthIDR : netWorthIDR / 15500, baseCurrency)}
             </h3>
-            <div className="mt-4 flex items-center gap-2 text-xs font-medium text-emerald-400">
+            <div className="mt-4 flex items-center gap-2 text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg w-fit border border-emerald-500/20">
               <span>▲ +2.4%</span>
-              <span className="text-slate-500">dibanding bulan lalu</span>
+              <span className="text-slate-400">dibanding bulan lalu</span>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="bg-[#111827] border border-slate-800/80 rounded-2xl p-6">
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.2 }}
+            className="bg-[#111827] border border-slate-800 rounded-2xl p-6 hover:border-slate-700 transition-all duration-300"
+          >
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Aset</p>
-            <h3 className="text-2xl font-bold text-slate-100 mt-2">
+            <h3 className="text-2xl font-bold text-slate-100 mt-2 tracking-tight">
               {formatCurrency(baseCurrency === 'IDR' ? totalAssetsIDR : totalAssetsIDR / 15500, baseCurrency)}
             </h3>
             <div className="mt-4 text-xs text-slate-400">
               Kas Cair: <span className="font-semibold text-white">Rp 260.500.000</span>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="bg-[#111827] border border-slate-800/80 rounded-2xl p-6">
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.3 }}
+            className="bg-[#111827] border border-slate-800 rounded-2xl p-6 hover:border-slate-700 transition-all duration-300"
+          >
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Liabilitas (Hutang)</p>
-            <h3 className="text-2xl font-bold text-rose-400 mt-2">
+            <h3 className="text-2xl font-bold text-rose-400 mt-2 tracking-tight">
               {formatCurrency(baseCurrency === 'IDR' ? totalDebtsIDR : totalDebtsIDR / 15500, baseCurrency)}
             </h3>
             <div className="mt-4 text-xs text-slate-400">
               Kartu Kredit & Pinjaman
             </div>
-          </div>
+          </motion.div>
         </div>
 
         {/* Account Breakdown & Recent Transactions Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Accounts List */}
-          <div className="lg:col-span-1 bg-[#111827] border border-slate-800/80 rounded-2xl p-6 space-y-4">
+          <div className="lg:col-span-1 bg-[#111827] border border-slate-800 rounded-2xl p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h4 className="font-bold text-white text-base">Daftar Akun & Saldo</h4>
               <button className="text-xs text-indigo-400 hover:underline">Kelola</button>
             </div>
 
             <div className="space-y-3">
-              {accounts.map((acc) => (
-                <div key={acc.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-900/50 border border-slate-800/50">
+              {accounts.map((acc, idx) => (
+                <motion.div
+                  key={acc.id}
+                  whileHover={{ scale: 1.01, x: 2 }}
+                  className="flex items-center justify-between p-3 rounded-xl bg-slate-900/50 border border-slate-800/80 hover:border-slate-700 transition-all"
+                >
                   <div>
                     <p className="font-semibold text-sm text-slate-200">{acc.name}</p>
                     <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">{acc.type}</span>
@@ -191,13 +216,13 @@ export default function SakuDashboard() {
                     <p className="font-semibold text-sm text-slate-100">{formatCurrency(acc.balance, acc.currency)}</p>
                     {acc.eqIDR && <p className="text-[11px] text-slate-500">≈ {formatCurrency(acc.eqIDR, 'IDR')}</p>}
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           </div>
 
           {/* Transactions Ledger */}
-          <div className="lg:col-span-2 bg-[#111827] border border-slate-800/80 rounded-2xl p-6 space-y-4">
+          <div className="lg:col-span-2 bg-[#111827] border border-slate-800 rounded-2xl p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h4 className="font-bold text-white text-base">Jurnal Transaksi Terbaru</h4>
               <button className="text-xs text-indigo-400 hover:underline">Lihat Semua</button>
@@ -215,7 +240,7 @@ export default function SakuDashboard() {
                 </thead>
                 <tbody className="divide-y divide-slate-800/50">
                   {recentTransactions.map((tx) => (
-                    <tr key={tx.id} className="hover:bg-slate-800/30 transition">
+                    <tr key={tx.id} className="hover:bg-slate-800/30 transition-all">
                       <td className="py-3 text-xs text-slate-400">{tx.date}</td>
                       <td className="py-3 font-medium text-slate-200">{tx.description}</td>
                       <td className="py-3 text-xs text-slate-400">{tx.account}</td>
