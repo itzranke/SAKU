@@ -9,7 +9,7 @@
  * the scheduler, the Settings UI copy and the CI smoke test agreeing on one set of numbers.
  */
 import { normalizeMt5SyncPayload, RawMt5SyncPayload } from '../trading/mt5-payload';
-import { Connector } from './connector';
+import { Connector, ConnectorDescription } from './connector';
 
 export const MT5_SNAPSHOT_INTERVAL_SEC = Math.max(0, Number(process.env.MT5_SNAPSHOT_INTERVAL_SEC ?? 120) || 0);
 export const MT5_DEALS_INTERVAL_MIN = Math.max(0, Number(process.env.MT5_DEALS_INTERVAL_MIN ?? 10) || 0);
@@ -43,17 +43,7 @@ export class Mt5CloudConnector implements Connector {
     return MT5_FIRST_SYNC_DAYS;
   }
 
-  describe(): {
-    type: string;
-    label: string;
-    status: string;
-    direction: string;
-    syncIntervalSec: number;
-    dealsIntervalMin: number;
-    firstSyncDays: number;
-    credentialRef: Connector['credentialRef'];
-    normalizer: string;
-  } {
+  describe(): ConnectorDescription {
     return {
       type: this.type,
       label: this.label,

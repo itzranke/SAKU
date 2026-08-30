@@ -46,7 +46,28 @@ export interface ConnectorDescriptor {
   normalizer: string;
 }
 
+/**
+ * Bidang tambahan yang hanya muncul di permukaan deskripsi (GET /connectors), bukan di
+ * kontrak inti — konektor bertipe upload/manual tidak punya cadence penarikan.
+ */
+export interface ConnectorDescribeExtras {
+  /** Cadence penarikan deals (menit); 0 = manual/batch saja. */
+  dealsIntervalMin?: number;
+  /** Jendela sinkronisasi perdana (hari). */
+  firstSyncDays?: number;
+}
+
+/** Bentuk yang dikembalikan `describe()` — deskriptor + cadence turunan (bila ada). */
+export type ConnectorDescription = ConnectorDescriptor & ConnectorDescribeExtras;
+
 export interface Connector extends ConnectorDescriptor {
+  /**
+   * Deskriptor untuk permukaan publik (GET /connectors & docs). WAJIB ada di kontrak supaya
+   * registry tidak perlu menebak-nebak kelasnya (cabang `else` manual) — konektor baru yang
+   * lupa mengimplementasikan ini langsung ketahuan saat kompilasi (audit #4).
+   */
+  describe(): ConnectorDescription;
+
   /** Map a raw feed (already vendor-shaped) into internal closed-deal rows. */
   normalize(raw: unknown): { deals: NormalizedClosedDeal[]; errors: string[] };
 }
