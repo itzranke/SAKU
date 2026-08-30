@@ -6,6 +6,17 @@
  */
 import { UNSUPPORTED_SERVER_MESSAGE } from './mt5-provider';
 
+const NETWORK_MESSAGE =
+  'Konektor cloud tidak terjangkau dari server SAKU. Coba lagi nanti, atau gunakan import statement/CSV MT5.';
+
+/**
+ * Urutan = prioritas: aturan gangguan (5xx/jaringan) DIDAHULUKAN sebelum aturan identitas
+ * server. Tanpa urutan ini, pesan seperti "server error 500" kena aturan `server` dan tampil
+ * sebagai "server/broker tidak didukung" — menutupi gangguan sementara vendor (audit #7).
+ *
+ * Catatan pola `server`: TIDAK boleh berdiri sendiri. Yang dimaksud aturan terakhir adalah
+ * IDENTITAS server broker (nama server salah/tidak dikenal), bukan kata "server" secara umum.
+ */
 const RULES: Array<{ test: RegExp; message: string }> = [
   {
     test: /E_AUTH|invalid login or password|unauthoriz|401|403|wrong password/i,
@@ -13,16 +24,19 @@ const RULES: Array<{ test: RegExp; message: string }> = [
       'Login/investor password (read-only) ditolak broker. Periksa investor password & nama server di Settings → Integrations, lalu simpan ulang.',
   },
   {
-    test: /E_SRV_NOT_FOUND|not found|unsupported|no such server|E_SERVER_TIMEZONE|provisioning|server/i,
-    message: UNSUPPORTED_SERVER_MESSAGE,
+    // Gangguan/vendor 5xx + kegagalan jaringan. `\b5\d\d\b` dipagari batas kata supaya
+    // nomor rekening seperti "500123" tidak ikut cocok.
+    test: /\b5\d\d\b|server error|internal error|unavailable|ECONNRESET|timeout|ETIMEDOUT|ECONN|ENOTFOUND|EAI_AGAIN|network/i,
+    message: NETWORK_MESSAGE,
   },
   {
     test: /limit|quota|402|payment|plan/i,
     message: 'Kuota/paket MetaApi tidak mengizinkan panggilan lagi. Tambah akun di vendor atau gunakan import statement/CSV MT5.',
   },
   {
-    test: /timeout|ETIMEDOUT|ECONN|ENOTFOUND|EAI_AGAIN|network/i,
-    message: 'Konektor cloud tidak terjangkau dari server SAKU. Coba lagi nanti, atau gunakan import statement/CSV MT5.',
+    // Hanya frasa yang merujuk identitas server broker (bukan kata "server" polos).
+    test: /E_SRV_NOT_FOUND|no such server|unknown server|unsupported server|server not found|server tidak dikenal|server tidak didukung|E_SERVER_TIMEZONE|provisioning|not found|unsupported/i,
+    message: UNSUPPORTED_SERVER_MESSAGE,
   },
 ];
 
