@@ -119,3 +119,18 @@ export interface IntegrationsRepository {
   upsertAccountState?(input: AccountStateInput): Promise<AccountStateRow>;
   listAccountState?(): Promise<AccountStateRow[]>;
 }
+
+/**
+ * Invariant unik `(ownerId, type, login)` dilanggar — dilempar adapter penyimpanan saat
+ * pengecekan `findByLogin()` di service kalah balapan dengan penulisan lain (audit #2).
+ *
+ * ponytail: kelas ini hidup di PORT (bukan di adapter in-memory) supaya service boleh
+ * menangkapnya TANPA mengimpor adapter tertentu — arah dependensi tetap adapter → port.
+ * Penanggung jawab: IntegrationsService.create() menerjemahkannya jadi HTTP 400 ramah.
+ */
+export class IntegrationConflictError extends Error {
+  constructor(ownerId: string, type: string, login: string) {
+    super(`Akun ${type} "${login}" sudah terdaftar untuk owner ini. Gunakan PATCH untuk mengubahnya.`);
+    this.name = 'IntegrationConflictError';
+  }
+}
