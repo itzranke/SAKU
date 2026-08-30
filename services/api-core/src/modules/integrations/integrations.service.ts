@@ -15,6 +15,7 @@ import { BadRequestException, Inject, Injectable, Logger, NotFoundException } fr
 import { CryptoService } from '../security/crypto.service';
 import {
   INTEGRATIONS_REPOSITORY,
+  IntegrationConflictError,
   IntegrationPatch,
   IntegrationRow,
   IntegrationsRepository,
@@ -22,7 +23,8 @@ import {
   toPublicIntegration,
 } from './integrations.repository';
 import { applyCredentialPolicy, validateIntegrationFields } from './credential-policy';
-import { Mt5Provider, ProviderAccount, ProviderTestResult, UNSUPPORTED_SERVER_MESSAGE } from './providers/mt5-provider';
+import { Mt5Provider, ProviderAccount, ProviderTestResult } from './providers/mt5-provider';
+import { friendlyProviderError } from './providers/error-mapping';
 import { MT5_PROVIDER } from './providers/provider.factory';
 import { LOCAL_OWNER } from '../auth/session.service';
 
@@ -113,17 +115,30 @@ export class IntegrationsService {
       );
     }
 
-    const row = await this.repo.create({
-      ownerId,
-      type,
-      label: fields.value!.label,
-      login: fields.value!.login,
-      server: fields.value!.server,
-      port: fields.value!.port ?? null,
-      enabled: body.enabled === false ? false : true,
-      credentialCipher: this.crypto.encrypt(credential.investorPassword!),
-      vendorAccountId: body.vendorAccountId ?? null,
-    });
+    // Pengecekan findByLogin() di atas menangani kasus normal; adapter tetap memegang
+    // invariant unik (ownerId, type, login) untuk kasus balapan (dua POST bersamaan).
+    // Tanpa penanganan ini klien mendapat 500 generik — sekarang 400 ramah (audit #2).
+    let row: IntegrationRow;
+    try {
+      row = await this.repo.create({
+        ownerId,
+        type,
+        label: fields.value!.label,
+        login: fields.value!.login,
+        server: fields.value!.server,
+        port: fields.value!.port ?? null,
+        enabled: body.enabled === false ? false : true,
+        credentialCipher: this.crypto.encrypt(credential.investorPassword!),
+        vendorAccountId: body.vendorAccountId ?? null,
+      });
+    } catch (err) {
+      if (err instanceof IntegrationConflictError) {
+        throw new BadRequestException(
+          `Akun ${type} "${fields.value!.login}" sudah terdaftar. Muat ulang daftar integrasi, lalu gunakan PATCH /integrations/<id> untuk memperbarui.`
+        );
+      }
+      throw err;
+    }
     this.logger.log(
       `Integration ${row.type} ${row.login}@${row.server} registered (${this.repo.persistence}, credential sealed with AES-256-GCM, ${this.crypto.keySource} key).`
     );
@@ -180,7 +195,7 @@ export class IntegrationsService {
         provider: this.provider.id,
         mode: 'read-only',
         supported: false,
-        message: humaniseProbeError((err as Error).message),
+        message: friendlyProviderError(err),
         latencyMs: Date.now() - started,
         integrationId: row.id,
         label: row.label,
@@ -207,17 +222,3 @@ export class IntegrationsService {
   }
 }
 
-function humaniseProbeError(raw: string): string {
-  const message = (raw ?? '').trim();
-  if (!message) return UNSUPPORTED_SERVER_MESSAGE;
-  if (/unauthor|invalid login or password|401|403/i.test(message)) {
-    return 'Login/investor password (read-only) ditolak broker. Periksa investor password dan nama server, lalu simpan ulang.';
-  }
-  if (/not found|unsupported|unknown server|no such server/i.test(message)) {
-    return UNSUPPORTED_SERVER_MESSAGE;
-  }
-  if (/timeout|ETIMEDOUT|ECONN|ENOTFOUND/i.test(message)) {
-    return 'Konektor cloud tidak terjangkau dari server SAKU. Coba lagi nanti, atau gunakan import statement/CSV MT5.';
-  }
-  return message.length > 200 ? `${message.slice(0, 197)}…` : message;
-}

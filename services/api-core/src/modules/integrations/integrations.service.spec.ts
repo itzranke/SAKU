@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { CryptoService } from '../security/crypto.service';
 import { InMemoryIntegrationsRepository } from './in-memory-integrations.repository';
+import { IntegrationConflictError, IntegrationsRepository } from './integrations.repository';
 import { IntegrationsService } from './integrations.service';
 import { stripSensitive } from '../security/secret-redaction';
 import { NullProvider } from './providers/null.provider';
@@ -191,5 +192,62 @@ describe('IntegrationsService — kepemilikan (ADR-023)', () => {
     const forLocal = await service.list('user-local');
     expect(forA.integrations.map((i) => i.id)).toContain(integration.id);
     expect(forLocal.integrations.map((i) => i.id)).not.toContain(integration.id);
+  });
+});
+
+/** Port repository minimal: findByLogin lolos (null), `create` diatur per-tes. */
+const stubRepo = (create: IntegrationsRepository['create']): IntegrationsRepository => ({
+  persistence: 'memory' as const,
+  list: () => Promise.resolve([]),
+  find: () => Promise.resolve(null),
+  findByLogin: () => Promise.resolve(null),
+  create,
+  update: () => Promise.resolve(null),
+  remove: () => Promise.resolve(true),
+});
+
+describe('IntegrationsService — pesan gagal ramah & konflik (audit #1, #2)', () => {
+  let repo: InMemoryIntegrationsRepository;
+  let crypto: CryptoService;
+  let service: IntegrationsService;
+
+  beforeEach(() => {
+    process.env.ENCRYPTION_MASTER_KEY = 'saku_unit_test_key_32_bytes_long!!';
+    repo = new InMemoryIntegrationsRepository();
+    crypto = new CryptoService();
+    service = new IntegrationsService(repo, crypto, new SpyProvider());
+  });
+
+  it('aturan kuota/402 vendor ikut terpakai (celah versi lokal yang dihapus — audit #1)', async () => {
+    const failing = new IntegrationsService(repo, crypto, new SpyProvider('HTTP 402 plan quota exceeded for this account'));
+    const { integration } = await service.create(validBody() as any);
+    const result = await failing.testConnection(integration.id);
+
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/Kuota\/paket MetaApi/i);
+  });
+
+  it('konflik (ownerId, type, login) → 400 ramah, BUKAN 500 generik (audit #2)', async () => {
+    // Simulasi balapan: findByLogin() lolos, tetapi adapter menolak karena invariant unik.
+    const clashing = new IntegrationsService(
+      stubRepo(() => Promise.reject(new IntegrationConflictError('user-local', 'MT5_CLOUD', '700001'))),
+      crypto,
+      new SpyProvider()
+    );
+
+    await expect(clashing.create(validBody() as any)).rejects.toMatchObject({
+      status: 400,
+      message: expect.stringMatching(/sudah terdaftar/i),
+    });
+  });
+
+  it('error selain konflik tetap diteruskan apa adanya (jangan ditelan)', async () => {
+    const broken = new IntegrationsService(
+      stubRepo(() => Promise.reject(new Error('disk penuh'))),
+      crypto,
+      new SpyProvider()
+    );
+
+    await expect(broken.create(validBody() as any)).rejects.toThrow(/disk penuh/);
   });
 });

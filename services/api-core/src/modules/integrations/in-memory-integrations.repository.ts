@@ -9,6 +9,7 @@ import { LOCAL_OWNER } from '../auth/session.service';
 import {
   AccountStateInput,
   AccountStateRow,
+  IntegrationConflictError,
   IntegrationPatch,
   IntegrationRow,
   IntegrationsRepository,
@@ -107,9 +108,4 @@ export class InMemoryIntegrationsRepository implements IntegrationsRepository {
   }
 }
 
-export class IntegrationConflictError extends Error {
-  constructor(ownerId: string, type: string, login: string) {
-    super(`Akun ${type} "${login}" sudah terdaftar untuk owner ini. Gunakan PATCH untuk mengubahnya.`);
-    this.name = 'IntegrationConflictError';
-  }
-}
+
