@@ -569,3 +569,146 @@ di §1–§11 handoff ini), dan **TIDAK ADA kode web yang memanggil `/trading/st
 
 Nomor 10 **menunggu ADR** (keputusan desain dulu, kode belakangan) — jangan dikerjakan di sesi ini
 tanpa ADR baru.
+
+## 13) Addendum sesi 2026-08-30 (bagian 5, lanjutan) — HASIL EKSEKUSI antrean audit + insiden CI
+
+> Addendum hanya MENAMBAH; §1–§12 dipertahankan apa adanya.
+
+### 13.0) Apa yang tuntas sesi ini (satu PR per temuan, semua CI hijau sebelum merge)
+
+| PR | Isi | Temuan | Hasil CI |
+|---|---|---|---|
+| **#21** | §12 itu sendiri (rekonstruksi, +132 baris) | pelajaran §11.0 | ✅ 2/2 |
+| **#22** | `in-memory-integrations.repository.ts` pakai `LOCAL_OWNER` | #3 | ✅ 2/2 |
+| **#23** | `GET /trading/state` penanda `demo: true` + komentar asal-usul | #12 | ✅ 2/2 |
+| **#24** | penanda drift 10 tipe kontrak di `packages/database` | #5a | ✅ 2/2 |
+| **#25** | satu aturan pesan gagal (`friendlyProviderError`) + konflik → 400 ramah | #1 + #2 | ✅ 2/2 |
+| **#26** | satu konstanta `API_BASE` + satu `USD_IDR_RATE` (web) | #10 + #9 | ✅ 2/2 |
+| **#27** | satu helper format uang (`formatMoney`/`formatRupiah`) di 7 titik | #8 | ✅ 2/2 |
+| **#28** | `describe()` masuk kontrak `Connector`, cabang `else` dihapus | #4 | ✅ 2/2 |
+| **#29** | hapus `any`: `sync-scheduler.service.ts` + kontrak komponen web | #6 + #11 | ✅ 2/2 |
+| **#30** | luruskan arti penanda `demo` (koreksi komentar PR #23) | lanjutan #12 | ⚠️ lihat §13.3 |
+| **#31** | 5xx vendor tak lagi tampil "server tidak didukung" + tes baru | #7 | ✅ 2/2 |
+
+**Jumlah tes naik 105 → 116** (14 → 15 berkas):
+- +2 (`trading.service.spec.ts`): penanda `demo` sebelum/sesudah sinkron.
+- +3 (`integrations.service.spec.ts`): aturan kuota/402 terpakai, konflik → 400 (bukan 500), error non-konflik tidak ditelan.
+- +6 (`providers/error-mapping.spec.ts`, **berkas baru**): 5xx → jaringan, `server timeout` → jaringan, `Account 500123 not found` tetap unsupported, + 3 regresi.
+
+**Keputusan user yang dijalankan:**
+- Antrean dijalankan **terus** sampai habis (tanpa konfirmasi per item).
+- Titik ke-7 (`page.tsx:50`) **ikut** disatukan ke helper format — *"kerjakan saja yang terbaik untuk ke depannya"*.
+
+### 13.1) State akhir `main`
+
+- `main` = **`efea8b0`** (merge PR #31). Riwayat sesi ini: #21–#31, **semua MERGED**.
+- Tidak ada PR terbuka; `git log origin/main..HEAD` kosong; working tree bersih.
+- Gate CI di `ci.yml` tetap **versi USER** (commit `4c53783`, `9d1e376`, `6d01363`) — tidak disentuh.
+- Kontrak kawat yang dijaga sepanjang antrean (terbukti lewat smoke HTTP berulang):
+  `{integration:{id},notice}` · `sakuSession` · `GET /connectors` identik · `/ledger/journal` 400 saat
+  unbalanced · dialek `/trading/sync` bridge v1.1 · `master_password` → 400 "investor password (read-only)".
+
+### 13.2) Sisa antrean
+
+| Pri | Item | Catatan |
+|---|---|---|
+| 🟢 | **#5b** — pindahkan 10 tipe kontrak ke `@saku/database` (−55 baris) | **DIBLOKIR sampai ADR multi-pemilik ada.** Penanda drift (#5a, PR #24) sudah terpasang; jangan refactor 3 paket sebelum kebutuhan memaksa (YAGNI) |
+| 🟢 | Kandidat baru (BELUM diaudit, tidak ada di 12 temuan): sisa `any` di web — `IntegrationsSettingsModal.tsx:178`, `store/ledgerSlice.ts:114,116`, `store/integrationApi.ts:143` | Semua berupa `as any` untuk mempersempit body/error dari `fetch`. Sengaja TIDAK disentuh di PR #29 (di luar temuan audit). Butuh keputusan user dulu |
+| 🟢 | #9 jalur ideal: kurs dikirim API, bukan di-hardcode klien | Item terpisah, butuh keputusan user (baru konstanta `USD_IDR_RATE` hari ini) |
+| 🔴 | **Item C — Node 24** | Lihat §13.6 — **user lupa**, belum dikerjakan |
+| 🟡 | P3 live test MetaApi · keputusan `SAKU_AUTH_ENFORCE=true` · ADR multi-pemilik · kanal OTP nyata | Tidak berubah dari §12.3 / §11.3 |
+
+### 13.3) INSIDEN: job Postgres merah pada PR #30 dan `main` — terbukti FLAKE
+
+**Kronologi (jujur, termasuk kesalahan saya):**
+1. PR #30 (komentar saja) → `lint-and-build` ✅, **`🗄️ Ledger Persistence vs PostgreSQL (smoke)` ❌**.
+2. Saya **tetap merge** (loop tunggu saya hanya mencari `pending`, tidak mencari `fail`) — ini
+   **melanggar aturan §1 #5**. `gh pr merge` tidak menolak merge walau ada job merah.
+3. Run `main` setelah merge pun merah di **step yang sama**.
+4. Diagnosis: `gh api …/jobs` → step
+   **`M3 — Mt5Provider: flag off = no-op, mock = snapshot cache + jurnal`** → annotation
+   **exit code 7** (= `curl` gagal tersambung; API belum siap/crash di runner — pola jebakan §7 #1).
+5. Karena PR #30 hanya komentar, hipotesis = flake. Dibuktikan: PR #31 (perubahan nyata di
+   `error-mapping.ts`) **2/2 hijau** ⇒ infra runner yang flaky, **bukan regresi kode**.
+
+**Pelajaran permanen:**
+1. **Sebelum merge, cek `fail` — jangan cuma cek `pending`.** Pola aman:
+   `if gh pr checks N | grep -qi fail; then …berhenti…; fi`.
+2. **`gh pr merge` TIDAK menolak merge saat ada job merah.** Jangan mengandalkan tool.
+3. `gh run rerun <id> --failed` bisa menolak dengan *"run cannot be rerun; its workflow file may be
+   broken"*; dan `--job <id>` tidak didukung `gh` 2.23. Jadi: kalau job merah, andalkan **PR baru /
+   push baru** untuk memicu run bersih, atau minta user **Re-run job** lewat UI Actions.
+4. Log Actions tetap **tidak bisa diunduh** dari sandbox (konfirmasi ulang jebakan §11.5 #4:
+   `gh run view --log-failed` → `EOF`). Yang bisa dibaca: ANNOTATIONS di halaman job via `fetch_page`.
+5. Gejala exit code 7 di job Postgres = **server belum listening**, bukan salah asersi. Langkah
+   smoke CI memang tidak memeriksa hasil wait-loop-nya (`for …; do curl … && break; done`), jadi
+   kegagalan baru muncul di `curl` berikutnya.
+
+### 13.4) Koreksi penanda `demo` (lanjutan temuan #12)
+
+Komentar di PR #23 mengatakan `demo: true` = "belum pernah sinkron". **Itu kurang tepat** — ketahuan
+saat smoke: `MT5_CLOUD_ENABLED=true MT5_PROVIDER=mock` → `POST /trading/sync/now` → `journalized:3`
+(sinkron nyata terjadi), tetapi `GET /trading/state` tetap `demo: true`.
+
+**Penyebab struktural:** `lastMt5State` **hanya** diisi `TradingService.syncMt5Payload()` (jalur
+`POST /trading/sync`, dialek bridge/EA). Jalur **cloud** (scheduler & `POST /trading/sync/now`)
+menyimpan snapshot di `account_state_cache` dan memang tidak mengisi field itu.
+
+**Arti yang benar (sudah tertulis di kode lewat PR #30):** `demo: true` = angka di `lastState`
+berasal dari `fallbackState()` (angka contoh), **bukan** pernyataan "konektor belum pernah sinkron".
+Untuk status konektor yang sesungguhnya: `GET /trading/account-state`.
+
+### 13.5) Jebakan BARU sesi ini (tambahkan ke §4 / §11.5)
+
+1. **Ganti ganda dengan pola `.toLocaleString(...)` berujung pada `x.formatMoney`.** Saat mengganti
+   `snap.equity.toLocaleString('en-US', {…})` jadi helper, replace yang menyertakan titik menghasilkan
+   **`snap.equity.formatMoney`** (bukan `formatMoney(snap.equity)`) — `tsc` **menangkapnya**, tapi
+   hanya kalau dijalankan. **Selalu grep kedua bagian setelah edit massal** (jebakan §11.5 #9).
+2. **`{...repo}` pada objek kelas membuang metode prototipe.** Stub repository untuk tes harus
+   memakai objek literal yang mengimplementasikan port (atau `Object.create(instansi)`), BUKAN
+   spread — gejalanya: `this.repo.findByLogin is not a function`.
+3. **Jangan tambah `maximumFractionDigits` saat merapikan format mata uang.** Pola lama
+   `{ minimumFractionDigits: 2 }` membiarkan maksimum bawaan 3, jadi `25400.567` tampil
+   `25.400,567`. Menambah `maximumFractionDigits: 2` = **perubahan tampilan yang tak diminta**.
+   Uji kesamaan keluaran secara programatik sebelum/ sesudah.
+4. **`pkill -f "node dist/main.js"` bisa membunuh shell Anda sendiri** (pola `-f` cocok dengan baris
+   perintah bash yang memuat string itu). Pakai `pkill -f "dist/main"` lalu verifikasi dengan
+   `pgrep -af "dist/main" | grep -v pgrep`.
+5. **Komentar yang ditulis terburu-buru bisa jadi salah faktual.** Sebelum menulis "field X berarti
+   Y", jalankan dulu smoke yang membuktikan arti Y (lihat §13.4).
+6. `gh pr create --body "..."` dengan isi berisi backtick/paren bisa gagal parsing. **Pakai
+   `--body-file`.**
+
+### 13.6) ITEM C — Node 24: status = BELUM dikerjakan (user lupa)
+
+Diverifikasi sesi ini: `.github/workflows/ci.yml` masih `actions/checkout@v4`,
+`pnpm/action-setup@v3`, `node-version: 20` ⇒ **Item C belum dilakukan**. Setiap run CI juga
+masih mencetak warning: *"Node.js 20 is deprecated … being forced to run on Node.js 24"* —
+pengingat bahwa setelah Node 20 dihapus dari runner (musim gugur 2026), action lama **GAGAL**,
+bukan sekadar warning.
+
+**Langkah browser-only (±4 menit, 2 berkas) — panduan lengkap TIDAK ditulis ulang di sini,
+baca `docs/ci/27_NODE24_APPLY_GUIDE.md`:**
+1. Buka `github.com/itzranke/SAKU/blob/main/docs/ci/27_CI_NODE24_PROPOSED.yml` → **Raw** → Ctrl+A → Copy
+2. Buka `github.com/itzranke/SAKU/blob/main/.github/workflows/ci.yml` → ikon **PENSIL**
+3. Dalam kotak kode: Ctrl+A → Delete → Paste (penggantian berkas utuh)
+4. Commit langsung ke `main`, pesan: `ci: naikkan actions ke Node 24-ready (checkout v5, setup-node v5, pnpm v4, node 22)`
+5. Ulangi 1–4 untuk `27_RELEASE_NODE24_PROPOSED.yml` → `.github/workflows/release-builds.yml`, pesan: `ci(release): naikkan actions ke Node 24-ready`
+6. Cek **Actions**: 2 job tetap hijau & warning "Node.js 20 is deprecated" hilang.
+   ❌ Rollback: `commits/main` → commit tersebut → **Revert**.
+
+⛔ Workflow tetap **DIBLOKIR untuk agent** (GitHub App tanpa scope `workflows`) — jangan coba push.
+
+### 13.7) Fakta MetaApi & doktrin (TIDAK berubah)
+
+Masih persis seperti §11.6 — SAKU tetap **RAW REST tanpa SDK**; CopyFactory & risk-management SDK
+tetap **kontra-doktrin**; MetaStats = kandidat display-only; polling jangan dinaikkan tanpa cek
+rate-limit vendor. Tidak ada satu pun perubahan sesi ini yang menyentuh kontrak
+`providers/metaapi.provider.ts`.
+
+### 13.8) Definisi selesai sesi ini — terpenuhi
+
+- ✅ `main` = branch; `git log origin/main..HEAD` **kosong**; `git status` **bersih**.
+- ✅ Setiap PR (#21–#31) dibuka, CI hijau, lalu merge — **kecuali insiden PR #30 yang didokumenkan
+  di §13.3** (dan terbukti flake, bukan regresi).
+- ✅ Handoff diperbarui (§12 rekonstruksi + §13 hasil eksekusi, sisa antrean, jebakan baru).
