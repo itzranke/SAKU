@@ -3,11 +3,12 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { validateJournalEntries, LedgerEntryInput } from '@saku/ledger-core';
+import { SimpleTransactionBody } from '../store/ledgerSlice';
 
 interface TransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddTransaction: (newTx: any) => void;
+  onAddTransaction: (newTx: SimpleTransactionBody) => void;
   /** Fund accounts from the ledger store (name/currency). Falls back to defaults when absent. */
   accounts?: { name: string; currency: string }[];
 }
@@ -68,7 +69,6 @@ export default function TransactionModal({ isOpen, onClose, onAddTransaction, ac
     }
 
     onAddTransaction({
-      id: `t-${Date.now()}`,
       date: new Date().toISOString().split('T')[0],
       description,
       account,
