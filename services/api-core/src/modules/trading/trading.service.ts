@@ -181,10 +181,22 @@ export class TradingService {
     }
   }
 
+  /**
+   * `GET /api/v1/trading/state` — last ingest state + dedupe counter (bridge compat,
+   * see trading.controller.ts:52).
+   *
+   * Asal-usul `fallbackState()` (diverifikasi 2026-08-30, laporan audit handoff §12.2 #12):
+   * peninggalan era bridge/EA pra-ADR-022. Tidak ada kode web yang memanggil endpoint ini —
+   * UI memakai `GET /trading/account-state`. Kontraknya DIPERTAHANKAN apa adanya (bisa saja
+   * masih dipakai EA lama di luar repo), dan yang ditambah hanya penanda `demo`: supaya angka
+   * contoh tidak pernah dikira sebagai data broker yang nyata.
+   */
   async getTradingAccountState() {
     const processedDeals = await this.ledger.countProcessedDeals();
     return {
       lastState: this.lastMt5State ?? fallbackState(),
+      /** `true` = angka contoh (belum pernah sinkron); `false` = state hasil ingest terakhir. */
+      demo: this.lastMt5State === null,
       processed_tickets: processedDeals || this.processedTickets.size,
     };
   }
@@ -198,7 +210,14 @@ function businessDate(deal: NormalizedClosedDeal): string | undefined {
 const numberOr = (v: number | undefined, fallback: number): number =>
   v == null || Number.isNaN(v) ? fallback : v;
 
-/** Demo state kept for `GET /trading/state` when nothing has synced yet (UI never renders empty). */
+/**
+ * Demo state kept for `GET /trading/state` when nothing has synced yet (UI never renders empty).
+ *
+ * ponytail: angka contoh statis (akun 1048291 "HFM / MetaTrader 5"), BUKAN data broker.
+ * Ini peninggalan bridge/EA pra-ADR-022; jalur upgrade yang benar = hapus bersamaan dengan
+ * endpoint "bridge compat" kalau EA terakhir sudah pensiun. Selama endpoint hidup, pemanggil
+ * WAJIB membaca penanda `demo` — jangan pernah merender angka ini seolah saldo nyata.
+ */
 function fallbackState() {
   return {
     account_id: '1048291',
