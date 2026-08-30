@@ -437,3 +437,135 @@ simplifikasi yang disengaja, dan keluaran maksimal 3 baris. **Tes dan verifikasi
 garis merah (validasi batas kepercayaan, anti-kehilangan-data, keamanan/redaksi, aksesibilitas,
 permintaan eksplisit user, pemahaman masalah end-to-end, doktrin SAKU, CI hijau sebelum merge)
 mengalahkan Ponytail.
+
+## 12) Addendum sesi 2026-08-30 (bagian 5) — REKONSTRUKSI §12 + laporan `ponytail audit` (12 temuan)
+
+> Addendum hanya MENAMBAH; §1–§11 dipertahankan apa adanya.
+
+### 12.0) Tugas pertama sesi ini: §12 HILANG bersama sandbox (jebakan §11.0 TERULANG — kali kedua)
+
+Sesi bagian 4 ditutup platform (PR #20 merged ⇒ akses GitHub dicabut) **sebelum pekerjaan terakhir
+sempat di-commit**: `docs/HANDOFF_SESI_BERIKUTNYA_v1.2.md` §12 (+89 baris). Sandbox lalu ter-reset.
+
+**Bukti bahwa §12 benar-benar hilang (diverifikasi sebelum menulis ulang, bukan asumsi):**
+- `git status` bersih; `git log origin/main..HEAD --oneline` **kosong**; `HEAD = origin/main = b90b8e3`.
+- `api.github.com/.../contents/docs/HANDOFF_SESI_BERIKUTNYA_v1.2.md?ref=main` → 440 baris,
+  daftar `## ` terakhir = `## 11)` ⇒ **tidak ada §12 di main**.
+- `git ls-remote --heads origin` → 7 branch; `compare/main...ecccede9` (ujung `arena/01a05038-saku`)
+  = `behind`, `ahead_by: 0`, `total_commits: 0`, `files: []` ⇒ **tidak ada komit unik** di branch
+  sesi lalu yang bisa di-cherry-pick.
+- `gh pr list --state open` = `[]` ⇒ tidak ada PR menggantung.
+
+**Kesimpulan:** §12 ditulis ulang dari ringkasan yang dibawa pesan kickoff sesi ini, lalu
+**langsung satu PR → CI hijau → merge** (bukan ditahan sampai akhir sesi — pelajaran §11.0 #1).
+
+**Pelajaran permanen (perbarui, ini kejadian KEDUA):**
+1. Satu PR = langsung buka + merge. Menumpuk komit lokal = undangan kehilangan kerja.
+2. Sandbox bisa ter-reset **kapan saja**, termasuk setelah PR terakhir merge. Anggap setiap komit
+   lokal belum aman sampai ada di `main`.
+3. Sebelum kerja apa pun: `git status` + `git log origin/main..HEAD --oneline`. Kalau tidak kosong,
+   bereskan DULU.
+4. Kalau §12 ini tidak ada di `main`, berarti rekonstruksi belum terjadi → ulangi dari ringkasan
+   §12.2–§12.4 (laporan audit) + §12.1 (status) + §12.4 (urutan PR).
+
+### 12.1) State GitHub terverifikasi (awal sesi bagian 5)
+
+- `main` = **`b90b8e3`** (merge PR #20, `pushed_at 2026-08-30T01:18:21Z`). Sebelumnya `8d53dc9` (PR #19).
+- **Tidak ada PR terbuka**; semua riwayat PR MERGED + CI hijau:
+  M1–M6 = #2–#6 · #7 docs-sync · #8 §8 · #9 `GET /connectors` · #10/#11 ADR-023 + auth fase 1 ·
+  #12 §9 · #13 panduan P3 · #14 ADR-024 · #15 persistensi sesi + logout · #16 web login + cookie ·
+  #17 panduan enforce · #18 usulan Node24 · #19 §10 · **#20 §11 + disiplin Ponytail**.
+- Gate CI di `ci.yml` = versi **USER** (commit `4c53783`, `9d1e376`, `6d01363`) — JANGAN diulang/di-push ulang.
+- Rilis **v1.2.0 terbit TANPA aset biner** (unduhan masih v1.0.0) — jangan klaim ada biner baru.
+- Isi §11.2 (API + web + dokumen yang sudah hidup) **masih berlaku dan tidak berubah** — jangan bangun ulang.
+
+### 12.2) Laporan `ponytail audit` — 12 temuan (laporan dulu, apply satu-per-satu lewat PR)
+
+**Scope:** `services/api-core/src` (66 file, 4.370 baris impl) + `apps/web/src` (23 file, 2.846 baris)
++ `packages/database/src` (650 baris).
+**Metode:** tangga Ponytail — perlu ada? sudah ada di repo? stdlib? fitur native platform? dep yang
+sudah terpasang? satu baris? baru kode minimum.
+**Catatan:** nomor temuan = nomor baris pada `main b90b8e3`, **sudah diverifikasi ulang sesi ini**.
+
+| # | Lokasi | Temuan | Aksi |
+|---|---|---|---|
+| 1 | `integrations.service.ts:183,210-221` vs `providers/error-mapping.ts:30` | DUA implementasi aturan "pesan gagal ramah": `humaniseProbeError()` lokal vs `friendlyProviderError()`. Versi lokal tidak punya aturan kuota/402 dan beda salin UI | Hapus 20 baris, pakai yang sudah ada |
+| 2 | `in-memory-integrations.repository.ts:42,109-114` | `IntegrationConflictError` dilempar tapi tak pernah ditangkap ⇒ kalau terjadi, klien dapat 500 generik; service sudah punya pesan duplikat 400 | tangkap di `IntegrationsService.create()` → 400 ramah |
+| 3 | `in-memory-integrations.repository.ts:40` | `'user-local'` di-hardcode, padahal `LOCAL_OWNER` ada di `auth/session.service.ts:23` ⇒ akan jadi bug saat fase multi-pemilik | import 1 baris |
+| 4 | `modules/connectors/registry.ts:19-23` | Cabang `else` menyalin 7 field deskriptor manual; mati hari ini (`CONNECTORS` hanya 2) | `describe()` masuk `interface Connector`, hapus cabang `else` |
+| 5 | `packages/database/src/prisma-integrations.repository.ts:7-63` & `prisma-ledger.repository.ts:13-47` | 10 tipe kontrak dideklarasikan ulang identik dengan port api-core (arah dependensi api-core → database mencegah impor balik) | KEPUTUSAN USER: penanda drift sekarang (**#5a**), pindah bareng ADR multi-pemilik (**#5b**) |
+| 6 | `sync-scheduler.service.ts:83,174` | `repo: any` + `any[]` padahal `IntegrationsRepository` punya `listAccountState?()` bertipe | ketik dengan `IntegrationsRepository` (cek adapter Prisma cocok) |
+| 7 | `providers/error-mapping.ts:16-19` | Aturan #2 memakai pola `server` POLOS ⇒ pesan vendor apa pun yang mengandung kata "server" dipetakan ke "server/broker tidak didukung" (menutupi 5xx vendor) | persempit pola / urutkan aturan jaringan dulu + 1 tes baru untuk pesan "server error 500" |
+| 8 | `SonziHealthCard.tsx:172,175,176` · `IntegrationsSettingsModal.tsx:110,187` · `StatementImportModal.tsx:175` vs `page.tsx:127` | Format mata uang diulang 6× padahal `formatCurrency()` sudah ada | satu helper `formatMoney` + pakai ulang di 6 titik |
+| 9 | `page.tsx:264,280,295` | Kurs USD→IDR `15500` ditulis 3× — angka yang SAMA hidup di server: `packages/ledger-core/journal-mapping.ts:16 DEFAULT_EXCHANGE_RATES.USD` | minimal: satu konstanta `USD_IDR_RATE`; ideal (item terpisah): kurs dikirim API, jangan di-hardcode klien |
+| 10 | `app/api/proxy/[...path]/route.ts:20` & `app/api/session/route.ts:16` | `API_BASE` (default `http://localhost:4000`) didefinisikan 2×; pola berbagi sudah ada: `app/api/session-cookie.ts` | satu modul konstanta, impor di dua route |
+| 11 | `components/TransactionModal.tsx:10` · `page.tsx:85,91,113` | `any` di kontrak komponen/handler padahal tipe sudah ada di `store/ledgerSlice.ts` (`SimpleTransactionBody`, `ApiSnapshot`) | pakai tipe itu |
+| 12 | `trading.service.ts:187,202-215` | `GET /trading/state` mengembalikan `fallbackState()` DEMO (akun `1048291` "HFM / MetaTrader 5", balance 25.000, equity 25.400) saat belum pernah sinkron | KEPUTUSAN USER: kontrak dipertahankan + tandai `demo: true` di respons, TANPA ubah UI |
+
+**Rincian temuan yang butuh konteks:**
+
+**#1 — aman dihapus, dibuktikan oleh tes yang sudah ada.**
+`integrations.service.spec.ts:143` memakai input
+`"HTTP 404: server \"UNKNOWN-BROKER\" not found in connector coverage"` dan mengasersi
+`/tidak didukung konektor cloud|Impor statement/i`. Di `friendlyProviderError()` pesan itu kena
+aturan #2 (`/…not found…/`) ⇒ `UNSUPPORTED_SERVER_MESSAGE` ⇒ **asersi tetap lolos**. Versi lokal
+`humaniseProbeError()` tidak punya aturan kuota/402 ⇒ pesan vendor soal kuota hari ini jatuh ke
+"kembalikan pesan mentah" — itu yang diperbaiki dengan memakai fungsi bersama.
+
+**#2 — jangan hapus guard-nya.**
+`IntegrationConflictError` adalah **guard invariant unik `(ownerId,type,login)`**; yang diminta
+hanya menangkapnya di `IntegrationsService.create()` → 400 ramah (bukan 500 generik). Guard tetap jalan.
+
+**#12 — asal-usul (diverifikasi, penting untuk keputusan produk).**
+`fallbackState()` adalah **peninggalan era bridge/EA pra-ADR-022** (endpoint diberi label
+"bridge compat" di `trading.controller.ts:13`), **TIDAK PERNAH dibahas di sesi 1–3** (nol penyebutan
+di §1–§11 handoff ini), dan **TIDAK ADA kode web yang memanggil `/trading/state`** — UI memakai
+`/trading/account-state`. Karena itu keputusannya: **kontrak dipertahankan**, hanya ditandai
+`demo: true` supaya tak ada lagi yang mengira itu data nyata. Menandai = perubahan ADDITIF di respons.
+
+**Koreksi/penemuan saat verifikasi ulang sesi ini (selisih kecil dari ringkasan lama):**
+- Path temuan #4 yang benar = `services/api-core/src/modules/connectors/registry.ts` (bukan
+  `integrations/connectors/registry.ts`).
+- `StatementImportModal.tsx:175` memakai `toLocaleString('id-ID')` (bukan `'en-US'` + 2 desimal).
+  Tetap duplikasi format ⇒ tetap masuk helper `formatMoney`, tapi helper harus punya **dua bentuk**
+  (angka broker = `'en-US'` + 2 desimal; rupiah mutasi = `'id-ID'`).
+- **Titik ke-7** yang belum masuk daftar: `page.tsx:50` juga memakai
+  `toLocaleString('en-US', { minimumFractionDigits: 2 })` persis seperti 3 titik di SonziHealthCard.
+  Bisa ikut helper yang sama (keluaran identik, nol risiko) — **diputuskan saat PR #6**.
+- `page.tsx:127 formatCurrency()` memakai `'en-US'` untuk USD dan `'id-ID'` untuk IDR; jangan
+  disatukan paksa dengan helper #8 tanpa cek tampilan USD (ada prefix `$`).
+
+**Yang SENGAJA TIDAK dilaporkan (desain yang disengaja — jangan dibersihkan):**
+- Pemisahan `redactForLog` vs `stripSensitive` (dua keperluan berbeda: log vs payload respons).
+- Dua adapter per port (in-memory vs prisma) — fallback in-memory dipakai unit test & saat
+  `DATABASE_URL` mati.
+- Alias `@deprecated Mt5Payload` / `Mt5Deal` (kontrak EA lama, sengaja dipertahankan).
+- LRU `rememberTicket` (5.000 entri) — pagu wajar untuk volume rumah tangga.
+
+### 12.3) Yang TIDAK boleh dilakukan saat mengerjakan temuan di atas
+
+- JANGAN ubah kontrak kawat yang sudah hidup: `sakuSession`, `POST /integrations` =
+  `{integration:{id},notice}`, dialek `/trading/sync` bridge v1.1 + header `X-Saku-Client`,
+  `GET /connectors`, `/ledger/journal` 400 saat unbalanced.
+- JANGAN tambah dependensi baru (termasuk SDK MetaApi) tanpa keputusan user.
+- JANGAN sentuh `.github/workflows/**` (lihat §11.5 #1).
+- JANGAN lemahkan `RedactionInterceptor` (lihat §11.5 — field bermuatan `token` dipotong jaring).
+
+### 12.4) Urutan PR FINAL (disetujui user 2026-08-30 — satu temuan per PR, CI hijau dulu baru lanjut)
+
+| No | Isi PR |
+|---|---|
+| 0 | §12 itu sendiri (rekonstruksi ini) → PR → merge. Laporan audit aman dulu di `main` (pelajaran §11.0) |
+| 1 | #3 — `in-memory-integrations.repository.ts:40` pakai `LOCAL_OWNER` (1 baris, nol risiko) |
+| 2 | #12 — `GET /trading/state`: tambah penanda `demo: true` + komentar asal-usul |
+| 3 | #5a — komentar penanda drift di `packages/database/src/prisma-integrations.repository.ts` & `prisma-ledger.repository.ts` (2 komentar, nol risiko) |
+| 4 | #1 + #2 — `integrations.service.ts`: hapus `humaniseProbeError` (−20 baris) pakai `friendlyProviderError` + tangkap `IntegrationConflictError` ⇒ 400 ramah (bukan 500) |
+| 5 | #10 + #9 (web) — satu konstanta `API_BASE` (2 route: proxy & session) + satu konstanta `USD_IDR_RATE` |
+| 6 | #8 (web) — satu helper `formatMoney`; pakai di 6 titik (SonziHealthCard ×3, IntegrationsSettingsModal ×2, StatementImportModal ×1) |
+| 7 | #4 — `describe()` masuk `interface Connector`; hapus cabang `else` di `modules/connectors/registry.ts` (−8 baris) |
+| 8 | #6 + #11 — hapus `any`: `sync-scheduler.service.ts:83,174` (pakai tipe `IntegrationsRepository`) dan `TransactionModal.tsx` / `page.tsx` (pakai tipe yang sudah ada di `store/ledgerSlice.ts`) |
+| 9 | #7 — persempit regex `server` di `providers/error-mapping.ts` + TES BARU (ubah pemetaan pesan) |
+| 10 | 🟢 ADR multi-pemilik → barulah #5b: pindahkan 10 tipe kontrak ke `@saku/database` (−55 baris) |
+
+Nomor 10 **menunggu ADR** (keputusan desain dulu, kode belakangan) — jangan dikerjakan di sesi ini
+tanpa ADR baru.
