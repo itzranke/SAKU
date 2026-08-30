@@ -107,3 +107,33 @@ describe('TradingService — M1 journalize + persistent-dedupe pipeline', () => 
     expect(second.dedupe).toBe('in-memory');
   });
 });
+
+describe('TradingService — GET /trading/state menandai angka contoh (audit #12)', () => {
+  let ledger: LedgerService;
+  let trading: TradingService;
+
+  beforeEach(() => {
+    ledger = new LedgerService(new InMemoryLedgerRepository());
+    trading = new TradingService(ledger);
+  });
+
+  it('demo: true sebelum pernah sinkron — angka fallback tidak boleh dikira data broker', async () => {
+    const state = await trading.getTradingAccountState();
+
+    expect(state.demo).toBe(true);
+    expect(state.lastState).toMatchObject({ account_id: '1048291', currency: 'USD' });
+    expect(state.processed_tickets).toBe(0);
+  });
+
+  it('demo: false setelah sinkron — state berasal dari payload ingest terakhir', async () => {
+    await trading.syncMt5Payload(payload('1048291'));
+    const state = await trading.getTradingAccountState();
+
+    expect(state.demo).toBe(false);
+    // Setelah sinkron, lastState = payload mentah terakhir (dialek provider: `account` +
+    // `account_info`), BUKAN lagi bentuk contoh `account_id`/`balance` dari fallbackState().
+    expect(state.lastState.account).toBe('1048291');
+    expect(state.lastState.account_info.balance).toBe(10_000);
+    expect(state.processed_tickets).toBeGreaterThan(0);
+  });
+});
