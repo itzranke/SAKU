@@ -10,10 +10,9 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { SESSION_COOKIE } from '../session-cookie';
+import { API_BASE } from '../api-base';
 
 export const dynamic = 'force-dynamic';
-
-const API_BASE = process.env.SAKU_API_INTERNAL_URL || 'http://localhost:4000';
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   let payload: { identifier?: string; code?: string };

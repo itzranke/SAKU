@@ -14,10 +14,9 @@
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { SESSION_COOKIE } from '../../session-cookie';
+import { API_BASE } from '../../api-base';
 
 export const dynamic = 'force-dynamic';
-
-const API_BASE = process.env.SAKU_API_INTERNAL_URL || 'http://localhost:4000';
 
 /** Header yang tidak boleh diteruskan apa adanya ke upstream. */
 const HOP_BY_HOP = new Set(['host', 'connection', 'content-length', 'accept-encoding', 'cookie']);
