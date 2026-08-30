@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useSakuDispatch, useSakuSelector } from './store/hooks';
-import { fetchSnapshot, postTransaction, toApiTransaction } from './store/ledgerSlice';
+import { fetchSnapshot, postTransaction, toApiTransaction, SimpleTransactionBody } from './store/ledgerSlice';
 import TransactionModal from './components/TransactionModal';
 import { StatementImportModal } from './components/StatementImportModal';
 import { SonziHealthCard } from './components/SonziHealthCard';
@@ -95,14 +95,14 @@ function DashboardContent() {
     dispatch(fetchSnapshot());
   }, [dispatch]);
 
-  const handleAddTransaction = async (newTx: any) => {
+  const handleAddTransaction = async (newTx: SimpleTransactionBody) => {
     if (isPosting) return;
     setIsPosting(true);
     try {
       await dispatch(postTransaction(toApiTransaction(newTx))).unwrap();
       showToast(`Jurnal "${newTx.description}" diposting — saldo diturunkan dari double-entry ledger.`, 'success');
-    } catch (err: any) {
-      showToast(err?.message || 'Jurnal ditolak validator ledger (tidak balance?).', 'warning');
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Jurnal ditolak validator ledger (tidak balance?).', 'warning');
     } finally {
       setIsPosting(false);
     }
@@ -123,8 +123,8 @@ function DashboardContent() {
         )
       ).unwrap();
       showToast(`Batch Import (${count} mutasi) disetujui & diposting sebagai 1 jurnal Double-Entry!`, 'success');
-    } catch (err: any) {
-      showToast(err?.message || 'Batch staging gagal diposting ke ledger.', 'warning');
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Batch staging gagal diposting ke ledger.', 'warning');
     }
   };
 

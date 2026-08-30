@@ -16,7 +16,12 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { IntegrationsService } from '../integrations/integrations.service';
-import { INTEGRATIONS_REPOSITORY, IntegrationRow } from '../integrations/integrations.repository';
+import {
+  AccountStateRow,
+  INTEGRATIONS_REPOSITORY,
+  IntegrationRow,
+  IntegrationsRepository,
+} from '../integrations/integrations.repository';
 import { MT5_PROVIDER, mt5CloudEnabled, mt5ProviderKind } from '../integrations/providers/provider.factory';
 import { Mt5Provider } from '../integrations/providers/mt5-provider';
 import { friendlyProviderError } from '../integrations/providers/error-mapping';
@@ -80,7 +85,7 @@ export class SyncSchedulerService {
     private readonly integrations: IntegrationsService,
     private readonly trading: TradingService,
     @Inject(MT5_PROVIDER) private readonly provider: Mt5Provider,
-    @Inject(INTEGRATIONS_REPOSITORY) private readonly repo: any
+    @Inject(INTEGRATIONS_REPOSITORY) private readonly repo: IntegrationsRepository
   ) {}
 
   @Interval(SNAPSHOT_INTERVAL_SEC > 0 ? SNAPSHOT_INTERVAL_SEC * 1000 : 24 * 60 * 60 * 1000)
@@ -171,8 +176,8 @@ export class SyncSchedulerService {
   /** Read-only display state for the dashboard cards; empty (not an error) when disabled. */
   async overview(): Promise<AccountStateOverview> {
     const rows = await this.integrations.listRows();
-    const cached: any[] = this.repo?.listAccountState ? await this.repo.listAccountState() : [];
-    const byId = new Map<string, any>(cached.map((s) => [s.integrationAccountId, s]));
+    const cached: AccountStateRow[] = this.repo?.listAccountState ? await this.repo.listAccountState() : [];
+    const byId = new Map<string, AccountStateRow>(cached.map((s) => [s.integrationAccountId, s]));
     const accounts = rows.map((row: IntegrationRow) => {
       const state = byId.get(row.id);
       return {
