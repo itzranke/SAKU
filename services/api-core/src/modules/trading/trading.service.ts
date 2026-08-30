@@ -195,7 +195,17 @@ export class TradingService {
     const processedDeals = await this.ledger.countProcessedDeals();
     return {
       lastState: this.lastMt5State ?? fallbackState(),
-      /** `true` = angka contoh (belum pernah sinkron); `false` = state hasil ingest terakhir. */
+      /**
+       * `true` = angka contoh: `lastState` berasal dari `fallbackState()`, bukan dari ingest
+       * mana pun.
+       *
+       * CATATAN JUJUR (diverifikasi smoke 2026-08-30): penanda ini mengikuti jalur
+       * **`/trading/sync`** (bridge/EA) karena `lastMt5State` hanya diisi di situ. Jalur
+       * cloud (`POST /trading/sync/now`, scheduler) menyimpan snapshotnya di
+       * `account_state_cache` dan MEMANG tidak mengisi `lastMt5State`, jadi `demo` bisa
+       * tetap `true` walau konektor sudah pernah sinkron. Untuk status konektor yang benar,
+       * pakai `GET /trading/account-state`.
+       */
       demo: this.lastMt5State === null,
       processed_tickets: processedDeals || this.processedTickets.size,
     };
