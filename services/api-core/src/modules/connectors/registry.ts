@@ -5,9 +5,9 @@
  * (bank, crypto exchange, e-wallet, physical assets, debts) means implementing `Connector`
  * and adding one line here — nothing else changes.
  */
-import { Connector } from './connector';
-import { Mt5CloudConnector, mt5CloudConnector } from './mt5-cloud.connector';
-import { StatementImportConnector, statementImportConnector } from './statement-import.connector';
+import { Connector, ConnectorDescription } from './connector';
+import { mt5CloudConnector } from './mt5-cloud.connector';
+import { statementImportConnector } from './statement-import.connector';
 
 export const CONNECTORS: Connector[] = [mt5CloudConnector, statementImportConnector];
 
@@ -15,9 +15,13 @@ export function connectorTypes(): string[] {
   return CONNECTORS.map((c) => c.type);
 }
 
-/** Description surface for docs/health panels — never includes secret material. */
-export function describeConnectors() {
-  return CONNECTORS.map((c) =>
-    c instanceof Mt5CloudConnector || c instanceof StatementImportConnector ? c.describe() : { type: c.type, label: c.label, status: c.status, direction: c.direction, syncIntervalSec: c.syncIntervalSec, credentialRef: c.credentialRef, normalizer: c.normalizer }
-  );
+/**
+ * Description surface for docs/health panels — never includes secret material.
+ *
+ * describe() ada di KONTRAK `Connector`, jadi cukup dipanggil: konektor baru otomatis ikut
+ * tanpa menyunting berkas ini (sebelumnya ada cabang `else` yang menyalin 7 field secara
+ * manual dan hanya benar untuk dua kelas yang dikenal — audit #4).
+ */
+export function describeConnectors(): ConnectorDescription[] {
+  return CONNECTORS.map((c) => c.describe());
 }
