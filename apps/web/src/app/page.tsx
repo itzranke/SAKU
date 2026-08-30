@@ -15,6 +15,7 @@ import { ObsidianJournalModal } from './components/ObsidianJournalModal';
 import { IntegrationsSettingsModal } from './components/IntegrationsSettingsModal';
 import { SourceBadge } from './components/SourceBadge';
 import { useAccountStateQuery } from './store/integrationApi';
+import { formatMoney, formatRupiah } from './format';
 
 /**
  * Kurs tampilan USD → IDR untuk ringkasan hero (audit #9).
@@ -59,7 +60,7 @@ function SyncPill({ connector, onManage }: { connector: ConnectorOverview; onMan
   return (
     <button
       onClick={onManage}
-      title={connector.state ? `Equity ${connector.state.currency} ${connector.state.equity.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : 'Konektor aktif, belum ada snapshot'}
+      title={connector.state ? `Equity ${connector.state.currency} ${formatMoney(connector.state.equity)}` : 'Konektor aktif, belum ada snapshot'}
       className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 font-medium ${
         stale ? 'border-amber-500/25 bg-amber-500/10 text-amber-300' : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400'
       }`}
@@ -136,9 +137,11 @@ function DashboardContent() {
     else if (actionId === 'integrations') setIsIntegrationsOpen(true);
   };
 
+  // Keluaran identik dengan versi sebelumnya — sekarang memakai helper bersama (audit #8)
+  // supaya tidak ada dua dialek format mata uang dalam satu berkas.
   const formatCurrency = (val: number, curr = 'IDR') => {
-    if (curr === 'USD') return `$${val.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
-    return `Rp ${val.toLocaleString('id-ID')}`;
+    if (curr === 'USD') return `$${formatMoney(val)}`;
+    return `Rp ${formatRupiah(val)}`;
   };
 
   return (
