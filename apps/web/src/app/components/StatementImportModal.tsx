@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { formatRupiah } from '../format';
 
 interface StagingRow {
   id: string;
@@ -172,7 +173,7 @@ export function StatementImportModal({ isOpen, onClose, onPostToLedger }: Statem
                             <td className="p-2 font-mono text-slate-400">{r.date}</td>
                             <td className="p-2 font-medium text-slate-200">{r.description}</td>
                             <td className="p-2 font-mono font-semibold text-white">
-                              Rp {r.amount.toLocaleString('id-ID')}
+                              Rp {formatRupiah(r.amount)}
                             </td>
                             <td className="p-2">
                               <span className="rounded bg-slate-800 px-2 py-0.5 text-slate-300 font-mono">

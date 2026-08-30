@@ -14,6 +14,7 @@ import {
 } from '../store/integrationApi';
 import { useSakuDispatch } from '../store/hooks';
 import { fetchSnapshot } from '../store/ledgerSlice';
+import { formatMoney } from '../format';
 
 interface Props {
   isOpen: boolean;
@@ -107,7 +108,7 @@ export function IntegrationsSettingsModal({ isOpen, onClose, onNotify }: Props) 
       setProbing((p) => {
         const next = { ...p };
         next[id] = res.ok
-          ? `✓ ${res.message}${res.snapshot ? ` · Equity ${res.snapshot.currency} ${res.snapshot.equity.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : ''}`
+          ? `✓ ${res.message}${res.snapshot ? ` · Equity ${res.snapshot.currency} ${formatMoney(res.snapshot.equity)}` : ''}`
           : `✗ ${res.message}`;
         return next;
       });
@@ -184,7 +185,7 @@ export function IntegrationsSettingsModal({ isOpen, onClose, onNotify }: Props) 
                   </span>
                   {state?.state ? (
                     <span className="text-slate-300">
-                      Equity {state.state.currency} {state.state.equity.toLocaleString('en-US', { minimumFractionDigits: 2 })} ·{' '}
+                      Equity {state.state.currency} {formatMoney(state.state.equity)} ·{' '}
                       {state.state.updatedAt ? `${Math.max(0, Math.round((Date.now() - Date.parse(state.state.updatedAt)) / 1000))} dtk lalu` : ''}
                     </span>
                   ) : (

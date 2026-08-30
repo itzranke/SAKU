@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAccountStateQuery } from '../store/integrationApi';
+import { formatMoney } from '../format';
 
 export function SonziHealthCard() {
   const [riskProfile, setRiskProfile] = useState<'CONSERVATIVE' | 'MODERATE' | 'AGGRESSIVE'>('MODERATE');
@@ -169,11 +170,11 @@ export function SonziHealthCard() {
         {snap ? (
           <>
             <span className="font-mono text-base font-extrabold text-emerald-400">
-              {snap.currency} {snap.equity.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              {snap.currency} {formatMoney(snap.equity)}
             </span>
             <span className="text-xs text-slate-400">
-              Balance {snap.balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-              {snap.margin != null ? ` · Margin ${snap.margin.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : ''}
+              Balance {formatMoney(snap.balance)}
+              {snap.margin != null ? ` · Margin ${formatMoney(snap.margin)}` : ''}
             </span>
             <span className={`text-[10px] font-semibold ${ageSec !== null && ageSec > 600 ? 'text-amber-400' : 'text-slate-500'}`}>
               {ageSec === null ? 'snapshot tersedia' : `${ageSec} dtk lalu`}
