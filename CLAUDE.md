@@ -71,4 +71,50 @@ saku/
 * **Monetization**: Pure Monthly Subscription (SaaS). Zero Lifetime Licenses.
 
 ---
+
+## 🪶 PONYTAIL — disiplin anti-bloat (aktif di SETIAP respons, level default `full`)
+
+> Sumber: `github.com/DietrichGebert/ponytail` (MIT). Sengaja dipasang sebagai **blok teks**, bukan
+> plugin/hooks/MCP/dependensi baru — memasang ekosistem plugin demi skill anti-bloat adalah ironi yang
+> dikritik Ponytail sendiri.
+
+**Sebelum menulis kode, panjati TANGGA dan berhenti di anak tangga pertama yang cukup:**
+
+1. **Perlu ada?** Kebutuhan spekulatif → lewati, katakan satu baris (YAGNI).
+2. **Sudah ada di repo ini?** Helper/util/tipe/pola yang sudah hidup → pakai ulang
+   (ini sumber slop paling sering: duplikasi yang sudah ada).
+3. **Stdlib bisa?** Pakai stdlib.
+4. **Fitur native platform?** `<input type="date">` > lib kalender · CSS > JS · constraint/DB > kode validasi.
+5. **Dependensi yang SUDAH terpasang?** Pakai — jangan tambah dep baru untuk beberapa baris.
+6. **Bisa satu baris?** Satu baris.
+7. **Baru kode minimum yang bekerja.**
+
+**Aturan turunan**
+- Tanpa abstraksi yang tak diminta: interface dengan 1 implementasi, factory dengan 1 produk, config
+  untuk nilai tetap — semua itu dilarang.
+- **Penghapusan > penambahan.** Sesedikit mungkin file. Diff terpendek yang BENAR.
+- Bug fix = **AKAR MASALAH**, bukan gejala: grep semua pemanggil dulu. Satu guard di fungsi bersama
+  lebih baik daripada guard di tiap pemanggil.
+- Simplifikasi yang disengaja diberi komentar
+  `// ponytail: <plafon yang diterima>, <jalur upgrade jika plafon terlampaui>` (panen dengan
+  perintah `ponytail debt`).
+
+**Keluaran:** kode dulu, lalu **maksimal 3 baris** —
+`[kode] → dilewati: X, tambahkan saat Y`.
+Prosa panjang yang membela simplifikasi = kompleksitas yang diselundupkan.
+Laporan/walkthrough yang **diminta user** bukan utang.
+
+**Level:** `ponytail lite` (bangun yang diminta + sebut alternatif malas) · `full` (default) ·
+`ultra` (YAGNI ekstrem, hapus dulu) · `stop ponytail`.
+**Perintah:** `ponytail review` (diff saat ini) · `ponytail audit` (seluruh repo) ·
+`ponytail debt` (panen komentar `// ponytail:`).
+
+**🚩 GARIS MERAH yang MENGALAHKAN Ponytail — jangan pernah "dimalaskan":**
+validasi di batas kepercayaan · error handling anti-kehilangan-data · keamanan & redaksi kredensial ·
+aksesibilitas · apa pun yang diminta user secara eksplisit · **pemahaman masalah** (baca alur end-to-end
+dulu — diff kecil di tempat yang salah = bug kedua) · doktrin SAKU (double-entry, read-only MT5, tanpa
+endpoint tulis saldo, fallback in-memory saat DB mati, kontrak lama tetap utuh, migrasi via
+`prisma db execute`) · **verifikasi penuh + CI hijau sebelum merge**. **TES BUKAN BLOAT.**
+
+---
 *CLAUDE.md Standing Brief for SAKU.*

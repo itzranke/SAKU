@@ -278,3 +278,162 @@ curl -s https://raw.githubusercontent.com/itzranke/SAKU/main/docs/ci/23_CI_PROPO
 - **Fase multi-pemilik** (owner selain `user-local`, rumah tangga) belum ada dan **butuh ADR baru**.
   Hari ini setiap sesi sah tetap menghasilkan owner `user-local`.
 - Kanal OTP masih jujur-mock (kode di log server) — mengganti kanal tidak boleh menyentuh desain sesi.
+
+---
+
+## 11) Addendum sesi 2026-08-30 (bagian 4) — PEMULIHAN komit lokal hilang + state main saat ini
+
+> Addendum hanya MENAMBAH; §1–§10 dipertahankan apa adanya. main di awal sesi = `8d53dc9`
+> (merge PR #19), diverifikasi via `api.github.com/repos/itzranke/SAKU/commits/main` sebelum apa pun.
+
+### 11.0) Tugas pertama sesi ini: 2 komit lokal HILANG bersama sandbox (jebakan §10.6 terjadi)
+
+Sesi bagian 3 ditutup platform (PR #19 merged ⇒ akses GitHub dicabut) **tepat sebelum PR terakhir
+dibuka**, lalu sandbox ter-reset. Dua komit lokal tidak pernah ter-push dan tidak bisa dipulihkan
+(`git reflog` di checkout baru hanya berisi `clone`, `git fsck --lost-found` kosong):
+
+| Komit yang hilang | Isi |
+|---|---|
+| `d049cc0` | `docs(handoff): §11.0 catat komit lokal belum ter-push sebagai tugas pertama sesi berikutnya` |
+| `a3035ad` | `docs: pesan handoff §11 untuk sesi berikutnya + disiplin Ponytail di CLAUDE.md` |
+
+**Pemulihan yang dilakukan sesi ini (bagian 4):** tulis ulang dari ringkasan §11.2–§11.5 + isi skill
+Ponytail, lalu langsung satu PR → CI hijau → merge (bukan ditahan sampai akhir sesi).
+
+**Pelajaran permanen (tambahkan ke disiplin sesi mana pun):**
+1. Satu PR = langsung buka + merge; **jangan menumpuk komit lokal** walau "tinggal docs".
+2. Sebelum mulai kerja lain: `git log origin/main..HEAD --oneline` — kalau tidak kosong,
+   bereskan dulu (cherry-pick/rebase ke branch sesi baru → push → PR → merge).
+3. Kalau dokumen §11 ini tidak ada di `main`, berarti pemulihan belum terjadi → ulangi langkah di atas.
+
+### 11.1) State GitHub terverifikasi (per akhir sesi bagian 3)
+
+- `main` = **`8d53dc9`** (merge PR #19). ⚠️ Egress sandbox flaky: `curl` ke `api.github.com` bisa
+  `000` → **retry 2–3×**, atau pakai `fetch_page` / `api.github.com/repos/itzranke/SAKU/contents/{path}?ref=main`
+  (isi base64).
+- Riwayat PR (SEMUA MERGED, CI hijau): M1–M6 = #2–#6 · docs-sync = #7 · #8 docs-sync+§8 ·
+  #9 `GET /connectors` · #10/#11 ADR-023 + auth fase 1 · #12 §9 · #13 panduan P3 · #14 ADR-024 ·
+  #15 persistensi sesi + logout · #16 web login + cookie · #17 panduan enforce · #18 usulan Node24 ·
+  #19 §10.
+- **Gate CI di `ci.yml` = versi USER** (commit `4c53783`, `9d1e376`, `6d01363`) — JANGAN diulang /
+  di-push ulang.
+- Rilis **v1.2.0 terbit TANPA aset biner** (unduhan masih v1.0.0) — jangan klaim ada biner baru.
+
+### 11.2) Yang HIDUP di main sekarang (jangan bangun ulang)
+
+**API** (`services/api-core`)
+- `GET /api/v1/connectors` — read-only, 2 konektor: `MT5_CLOUD` & `MT5_STATEMENT`.
+- Auth OTP → `verify-otp` mengembalikan `sakuSession` + `sakuSessionExpiresAt` + `ownerId:'user-local'`.
+- `POST /auth/logout` — idempoten, selalu 200.
+- `OwnerGuard` global: header `X-Saku-Session` → owner; tanpa/invalid ⇒ `user-local`.
+- `SAKU_AUTH_ENFORCE` default **FALSE** (`true` ⇒ route `@OwnerScoped` tanpa sesi = 401 ramah;
+  saat ini hanya `IntegrationsController` yang `@OwnerScoped`).
+- `body.ownerId` / `?ownerId=` dari klien **DIABAIKAN** (deprecated).
+- **Persistensi sesi:** tabel `auth_sessions` (hanya hash SHA-256) via `PrismaSessionStore`;
+  write-through best-effort + hidrasi saat boot; **tanpa `DATABASE_URL`** = perilaku fase 1 identik
+  (store `null`, `hydrate()` no-op).
+
+**WEB** (`apps/web`)
+- Halaman `/login` (OTP 2 langkah) · `/api/session` (POST set cookie HttpOnly, DELETE logout,
+  GET boolean) · proxy catch-all `/api/proxy/[...path]` yang menerjemahkan cookie `saku_session`
+  → header `X-Saku-Session`. **Rewrite statis di `next.config.js` SUDAH DIHAPUS** (rewrite tidak
+  bisa menyuntik header).
+
+**DOKUMEN**
+ADR-022 `docs/22` · ADR-023 `docs/23` · ADR-024 `docs/25` · panduan P3 `docs/24` ·
+panduan enforce `docs/26` · usulan + panduan Node24 `docs/ci/27_*` · handoff = dokumen ini (§1–§11).
+
+### 11.3) Antrean pekerjaan sesi berikutnya (konfirmasi user dulu; tak ada yang wajib selain §11.0)
+
+| Pri | Item | Catatan |
+|---|---|---|
+| 🔴 | **Item C — Node 24**: paste `docs/ci/27_CI_NODE24_PROPOSED.yml` & `27_RELEASE_NODE24_PROPOSED.yml` ke `.github/workflows/` lewat editor web | Panduan `docs/ci/27_NODE24_APPLY_GUIDE.md`. Node 20 **DIHAPUS** dari runner GitHub musim gugur 2026 ⇒ setelah itu action lama **GAGAL**, bukan warning. **TANYAKAN user di awal sesi** apakah sudah dilakukan; workflow tetap DIBLOKIR untuk agent (GitHub App tanpa scope `workflows`) — jangan pernah coba push. |
+| 🟡 | P3 live test MetaApi (user-driven) | Panduan `docs/24`. `METAAPI_TOKEN` hanya di panel hosting user (env), investor password via Settings → Integrations. JANGAN lewat chat/repo. `MT5_CLOUD_ENABLED=false` ⇒ `NullProvider`; EA BUKAN auto-fallback. |
+| 🟡 | Keputusan user: `SAKU_AUTH_ENFORCE=true` | Prasyarat lengkap (login + sesi persisten). Panduan + rollback 1 menit di `docs/26`. Pastikan user bisa membaca OTP di tab Logs dulu (kanal masih mock). |
+| 🟢 | Fase multi-pemilik (owner ≠ `user-local`, rumah tangga) | **BUTUH ADR BARU.** Desain dulu, kode belakangan. |
+| 🟢 | Kanal OTP nyata (email/WA) | Boleh diganti, TIDAK BOLEH menyentuh desain sesi. |
+| 🟢 | `ponytail audit` pada `services/api-core/src` & `apps/web/src` | **LAPORAN dulu**, jangan langsung apply; lalu satu PR kecil per temuan yang disetujui user. |
+
+### 11.4) Verifikasi standar (jalankan sebelum buka PR)
+
+```bash
+COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm@9.1.0 install --frozen-lockfile
+pnpm --filter @saku/api-core exec tsc --noEmit        # bersih
+pnpm --filter @saku/api-core test                     # 105/105, 14 file
+pnpm --filter @saku/api-core build                    # nest build OK
+# web bila tersentuh: tsc apps/web + next lint + NEXT BUILD (wajib — lihat jebakan §10.2 #2)
+```
+
+**Smoke HTTP** (`dist/main` tanpa `DATABASE_URL` ⇒ in-memory, PORT bebas mis. 4100):
+- `GET /api/v1/connectors` → 200, 2 konektor; tanpa materi rahasia (nama field `investor_password`
+  di deskriptor = **WAJAR**, bukan kebocoran).
+- `POST /auth/request-otp {"identifier":"t@saku.local"}` → OTP tercetak di log
+  (`[SAKU AUTH] OTP Code for t@saku.local: NNNNNN`) → `POST /auth/verify-otp` → berisi
+  `sakuSession` (`accessToken` TIDAK muncul = benar).
+- `POST /integrations` + `X-Saku-Session`, `body.ownerId:"penyusup"` → 201 `{integration:{id},notice}`,
+  owner tetap `user-local`; `?ownerId=orang` di GET diabaikan; `master_password` → 400
+  "investor password (read-only)"; `POST :id/test` → 201 `ok:false` ramah;
+  `POST /auth/logout` ×3 → 200 semua (idempoten).
+- Instance kedua `SAKU_AUTH_ENFORCE=true`: `GET /integrations` tanpa sesi → 401 ramah; dengan sesi → 200;
+  setelah logout → 401; `/ledger/snapshot` & `/connectors` (non-scoped) tetap 200.
+- `MT5_CLOUD_ENABLED=false` ⇒ provider `"null"` & `sync/now` `journalized:0`; `MT5_PROVIDER=mock` ⇒
+  `journalized:3` (ulang ⇒ 0) + `state.equity` terisi. **grep token/password mentah di log = 0 hit.**
+
+**Guardrail:** tidak ada endpoint "set balance"; tidak ada GET yang mengembalikan
+`credentialCipher`/password; fallback in-memory saat `DATABASE_URL` mati HARUS tetap (dipakai unit test);
+kontrak lama utuh (`/ledger/snapshot`, `/ledger/transaction`, `/ledger/journal` 400 saat unbalanced,
+`/trading/sync` dialek bridge v1.1 + header `X-Saku-Client: saku-bridge` ⇒ `EA_LEGACY`,
+`GET /connectors`, `sakuSession` di `verify-otp`).
+
+### 11.5) Jebakan terbukti — TAMBAHAN (selain §4 & §10.2)
+
+**BARU (sesi bagian 3–4):**
+1. `.github/workflows/**` **DIBLOKIR untuk agent** (GitHub App tanpa scope `workflows`). Perubahan
+   workflow = kirim file usulan (`docs/ci/27_*_PROPOSED.yml`) + panduan paste, pola
+   `docs/ci/23_CI_APPLY_GUIDE.md`. Mencoba push = buang waktu.
+2. `git stash -u` → `git reset --hard origin/main` → `git stash pop` = cara aman menyinkronkan branch
+   sesi setelah merge tanpa kehilangan pekerjaan yang belum di-commit.
+3. Komit lokal yang belum ter-push bisa hilang total saat sandbox ter-reset (lihat §11.0).
+
+**LAMA (tetap berlaku, ringkas):**
+- Nama field respons yang mengandung `token` **DIPOTONG** jaring redaksi (`SENSITIVE_EXACT`) ⇒ field
+  kawat sesi WAJIB `sakuSession`. JANGAN lemahkan `RedactionInterceptor`.
+- `grep -c` tanpa match = exit 1 ⇒ di `$( )` dengan `set -e` skrip mati **DIAM** → pakai
+  `{ grep -cF "x" f || true; }`. Kutip `awk` dengan kutip **TUNGGAL**.
+- Skrip smoke file terpisah **TIDAK melihat variabel shell parent** — definisikan semuanya di dalam skrip.
+- Edit ganda (import + pemakaian) bisa masuk separuh → SELALU grep verifikasi **kedua** bagian.
+- `pyyaml`: `pip install pyyaml --break-system-packages`.
+- `packages/ledger-core/dist` di-track → rebuild + commit tiap edit `index.ts`.
+- Prisma: JANGAN `migrate dev/deploy` — pakai `prisma db execute`; `ALTER TYPE ADD VALUE` dibungkus
+  `DO $$ … EXCEPTION … NULL $$`; `verify.sql` pakai `IF NOT EXISTS`.
+- `POST /integrations` = `{integration:{id},notice}` (ID **NESTED**).
+- Root-level TS di `api-core` merusak `nest build`. Jangan `next build` saat dev server pegang `.next`.
+- Egress sandbox flaky: `api.github.com` bisa `000` → retry 2–3× atau `fetch_page`/`web_search`.
+
+### 11.6) Fakta MetaApi (keputusan BERLAKU — jangan dibongkar)
+
+- SAKU tetap **RAW REST tanpa SDK**. Kontrak hidup di
+  `services/api-core/src/modules/integrations/providers/metaapi.provider.ts`:
+  base `mt-client-api-v1.{region}.agiliumtrade.ai` (default `new-york`, env `METAAPI_REGION`),
+  header `auth-token`, `GET account-information`, `GET history-deals/time/:from/:to`,
+  `POST /users/current/accounts`, timeout `METAAPI_TIMEOUT_MS` 15000, override
+  `METAAPI_CLIENT_URL` / `METAAPI_PROVISIONING_URL`.
+- SDK resmi (`metaapi-javascript-sdk`) hanya dipertimbangkan **KALAU butuh streaming WS/real-time** —
+  minta keputusan user dulu, jangan tambah dep sepihak.
+- ⛔ **CopyFactory** (copy trading) & **risk-management SDK** = KONTRA-DOKTRIN (eksekusi trade) —
+  JANGAN integrasikan.
+- **MetaStats** = kandidat display-only masa depan; angka ledger tetap HANYA dari pipeline jurnal
+  double-entry.
+- Polling saat ini (snapshot 120s, deals 10m) sangat konservatif — jangan naikkan frekuensi tanpa
+  cek docs rate-limit resmi vendor.
+
+### 11.7) Disiplin Ponytail (anti-bloat) — juga terpasang di `CLAUDE.md`
+
+Blok **🪶 PONYTAIL** di `CLAUDE.md` adalah sumber kebenaran untuk gaya kerja "kode minimum yang benar":
+panjat tangga (perlu ada? sudah ada di repo? stdlib? fitur native platform? dep yang sudah terpasang?
+satu baris? baru kode minimum) sebelum menulis kode, tanpa abstraksi yang tak diminta, penghapusan >
+penambahan, diff terpendek yang BENAR, komentar `// ponytail: <plafon>, <jalur upgrade>` untuk
+simplifikasi yang disengaja, dan keluaran maksimal 3 baris. **Tes dan verifikasi penuh BUKAN bloat** —
+garis merah (validasi batas kepercayaan, anti-kehilangan-data, keamanan/redaksi, aksesibilitas,
+permintaan eksplisit user, pemahaman masalah end-to-end, doktrin SAKU, CI hijau sebelum merge)
+mengalahkan Ponytail.
