@@ -16,6 +16,18 @@ import { IntegrationsSettingsModal } from './components/IntegrationsSettingsModa
 import { SourceBadge } from './components/SourceBadge';
 import { useAccountStateQuery } from './store/integrationApi';
 
+/**
+ * Kurs tampilan USD → IDR untuk ringkasan hero (audit #9).
+ *
+ * ponytail: angka HARUS sama dengan sumber kebenaran server
+ * `packages/ledger-core/journal-mapping.ts:16` (`DEFAULT_EXCHANGE_RATES.USD`), yang dipakai
+ * saat menjurnal — kalau server berubah, konstanta ini wajib ikut (komentar ini sengaja
+ * menyebut lokasinya). Plafon: kurs konstan, cukup untuk fase single-currency display.
+ * Jalur upgrade (item terpisah, butuh keputusan user): API mengirim kurs di snapshot, bukan
+ * di-hardcode klien.
+ */
+const USD_IDR_RATE = 15500;
+
 type ConnectorOverview = {
   enabled: boolean;
   provider: string;
@@ -261,7 +273,7 @@ function DashboardContent() {
             <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none group-hover:bg-indigo-500/20 transition-all"></div>
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Net Worth</p>
             <h3 className="text-3xl font-extrabold text-white mt-2 tracking-tight">
-              {formatCurrency(baseCurrency === 'IDR' ? netWorthIDR : netWorthIDR / 15500, baseCurrency)}
+              {formatCurrency(baseCurrency === 'IDR' ? netWorthIDR : netWorthIDR / USD_IDR_RATE, baseCurrency)}
             </h3>
             <div className="mt-4 flex items-center gap-2 text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg w-fit border border-emerald-500/20">
               <span>▲ +2.4%</span>
@@ -277,7 +289,7 @@ function DashboardContent() {
           >
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Aset</p>
             <h3 className="text-2xl font-bold text-slate-100 mt-2 tracking-tight">
-              {formatCurrency(baseCurrency === 'IDR' ? totalAssetsIDR : totalAssetsIDR / 15500, baseCurrency)}
+              {formatCurrency(baseCurrency === 'IDR' ? totalAssetsIDR : totalAssetsIDR / USD_IDR_RATE, baseCurrency)}
             </h3>
             <div className="mt-4 text-xs text-slate-400">
               Kas Cair: <span className="font-semibold text-white">{formatCurrency(liquidityCashIDR)}</span>
@@ -292,7 +304,7 @@ function DashboardContent() {
           >
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Liabilitas (Hutang)</p>
             <h3 className="text-2xl font-bold text-rose-400 mt-2 tracking-tight">
-              {formatCurrency(baseCurrency === 'IDR' ? totalDebtsIDR : totalDebtsIDR / 15500, baseCurrency)}
+              {formatCurrency(baseCurrency === 'IDR' ? totalDebtsIDR : totalDebtsIDR / USD_IDR_RATE, baseCurrency)}
             </h3>
             <div className="mt-4 text-xs text-slate-400">
               Kartu Kredit & Pinjaman
