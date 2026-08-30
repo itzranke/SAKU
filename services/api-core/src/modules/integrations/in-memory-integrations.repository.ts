@@ -5,6 +5,7 @@
  */
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
+import { LOCAL_OWNER } from '../auth/session.service';
 import {
   AccountStateInput,
   AccountStateRow,
@@ -37,7 +38,7 @@ export class InMemoryIntegrationsRepository implements IntegrationsRepository {
   }
 
   create(input: NewIntegrationInput): Promise<IntegrationRow> {
-    const ownerId = input.ownerId ?? 'user-local';
+    const ownerId = input.ownerId ?? LOCAL_OWNER;
     if (this.clashes(ownerId, input.type, input.login)) {
       return Promise.reject(new IntegrationConflictError(ownerId, input.type, input.login));
     }
