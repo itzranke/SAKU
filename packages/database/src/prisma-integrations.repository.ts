@@ -4,6 +4,21 @@
  * Stores ONLY the AES-256-GCM envelope in `credentialCipher`. This class never logs a row
  * and never returns anything but full rows (public shaping happens in api-core), so a
  * plaintext credential can not escape through this adapter.
+ *
+ * ⚠️ PENANDA DRIFT (laporan audit ponytail #5a — handoff §12.2)
+ * 5 tipe kontrak di bawah ini (`IntegrationRow`, `NewIntegrationInput`, `IntegrationPatch`,
+ * `AccountStateRow`, `AccountStateInput`) SENGAJA dideklarasikan ulang, identik dengan port
+ * api-core: services/api-core/src/modules/integrations/integrations.repository.ts.
+ *
+ * Kenapa tidak diimpor: arah dependensi api-core → @saku/database (api-core yang memilih
+ * adapter). Impor balik = siklus paket. Konsekuensinya kelas ini TIDAK `implements` port itu,
+ * jadi TypeScript tidak akan memperingatkan kalau keduanya berbeda.
+ *
+ * ATURAN: ubah tipe di sini ⇒ ubah kembarannya di api-core dalam PR yang sama.
+ *
+ * ponytail: duplikasi yang disengaja; jalur upgrade = pindahkan kontrak ke @saku/database
+ * bersamaan dengan ADR multi-pemilik (audit #5b). Jangan refactor 3 paket sebelum kebutuhan
+ * benar-benar memaksa (YAGNI).
  */
 import { PrismaClient } from '@prisma/client';
 

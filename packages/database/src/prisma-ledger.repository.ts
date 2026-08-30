@@ -6,6 +6,21 @@
  *
  * Selected by @saku/api-core only when DATABASE_URL is present
  * (see buildLedgerRepository in services/api-core/src/app.module.ts).
+ *
+ * ⚠️ PENANDA DRIFT (laporan audit ponytail #5a — handoff §12.2)
+ * 5 tipe kontrak di bawah ini (`NewJournalInput`, `NewAccountInput`, `DealSource`,
+ * `ProcessedDealRef`, `DedupeAppendResult`) SENGAJA dideklarasikan ulang, identik dengan port
+ * api-core: services/api-core/src/modules/ledger/ledger.repository.ts.
+ *
+ * Kenapa tidak diimpor: arah dependensi api-core → @saku/database (api-core yang memilih
+ * adapter). Impor balik = siklus paket. Konsekuensinya kelas ini TIDAK `implements` port itu,
+ * jadi TypeScript tidak akan memperingatkan kalau keduanya berbeda.
+ *
+ * ATURAN: ubah tipe di sini ⇒ ubah kembarannya di api-core dalam PR yang sama.
+ *
+ * ponytail: duplikasi yang disengaja; jalur upgrade = pindahkan kontrak ke @saku/database
+ * bersamaan dengan ADR multi-pemilik (audit #5b). Jangan refactor 3 paket sebelum kebutuhan
+ * benar-benar memaksa (YAGNI).
  */
 import { PrismaClient } from '@prisma/client';
 import { AccountDef, JournalRecord, validateJournalEntries } from '@saku/ledger-core';
